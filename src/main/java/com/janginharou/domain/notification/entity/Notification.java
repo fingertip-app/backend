@@ -46,4 +46,44 @@ public class Notification extends BaseEntity {
 
     @Column(nullable = false)
     private Boolean isSent;
+
+    public void markAsRead() {
+        this.isRead = true;
+        this.readAt = LocalDateTime.now();
+    }
+
+    public void markAsSent() {
+        this.isSent = true;
+    }
+
+    public void markAsUnsent() {
+        this.isSent = false;
+    }
+
+    public static Notification of(User user, String title, String message, NotificationType type) {
+        return Notification.builder()
+                .user(user)
+                .title(title)
+                .message(message)
+                .type(type)
+                .isRead(false)
+                .readAt(null)
+                .isSent(false)
+                .build();
+    }
+
+    public static Notification of(User user, String title, String message, NotificationType type,
+                                   Long relatedId, String relatedType) {
+        return Notification.builder()
+                .user(user)
+                .title(title)
+                .message(message)
+                .type(type)
+                .relatedId(relatedId)
+                .relatedType(relatedType)
+                .isRead(false)
+                .readAt(null)
+                .isSent(false)
+                .build();
+    }
 }

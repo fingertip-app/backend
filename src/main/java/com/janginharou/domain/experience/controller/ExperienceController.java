@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/experiences")
+@RequestMapping("/experiences")
 @RequiredArgsConstructor
 @Tag(name = "Experience API", description = "체험 프로그램 관련 API")
 public class ExperienceController {

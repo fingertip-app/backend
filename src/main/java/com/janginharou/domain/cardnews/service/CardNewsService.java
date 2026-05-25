@@ -39,7 +39,16 @@ public class CardNewsService {
     @Transactional
     public CardNews createCardNews(CardNews cardNews) {
         // TODO: 카드뉴스 생성 처리 (이미지 S3 업로드)
-        cardNews.setViewCount(0);
+        cardNews = CardNews.builder()
+                .title(cardNews.getTitle())
+                .description(cardNews.getDescription())
+                .kContentType(cardNews.getKContentType())
+                .linkedExperience(cardNews.getLinkedExperience())
+                .imageUrl(cardNews.getImageUrl())
+                .personalizationTags(cardNews.getPersonalizationTags())
+                .isActive(cardNews.getIsActive())
+                .viewCount(0)
+                .build();
         return cardNewsRepository.save(cardNews);
     }
 
@@ -60,5 +69,7 @@ public class CardNewsService {
     public void incrementViewCount(Long cardNewsId) {
         // TODO: 조회수 증가 처리 (Redis 캐싱 고려)
         CardNews cardNews = getCardNewsById(cardNewsId);
+        cardNews.increaseViewCount();
+        cardNewsRepository.save(cardNews);
     }
 }

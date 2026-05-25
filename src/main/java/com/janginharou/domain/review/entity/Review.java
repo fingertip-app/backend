@@ -42,4 +42,8 @@ public class Review extends BaseEntity {
 
     @Column(nullable = false)
     private Boolean isApproved;
+
+    public void approve() {
+        this.isApproved = true;
+    }
 }

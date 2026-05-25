@@ -14,7 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/card-news")
+@RequestMapping("/card-news")
 @RequiredArgsConstructor
 @Tag(name = "CardNews API", description = "한물결 카드뉴스 API")
 public class CardNewsController {

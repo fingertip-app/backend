@@ -5,7 +5,7 @@ Spring Boot 3.x 기반의 "장인과하루" 백엔드 API 서버입니다.
 ## 프로젝트 개요
 
 - **언어**: Java 17
-- **프레임워크**: Spring Boot 3.2.4
+- **프레임워크**: Spring Boot 3.3.0
 - **빌드 도구**: Gradle
 - **데이터베이스**: PostgreSQL
 - **캐시**: Redis
@@ -71,39 +71,34 @@ com/janginharou/
 
 ### 로컬 개발 환경
 
-#### 1. PostgreSQL 설치
+#### 0. JDK 17 설치
 ```bash
 # macOS
-brew install postgresql
+brew install openjdk@17
 
-# PostgreSQL 시작
-brew services start postgresql
+# JAVA_HOME 설정 (Java 25 등 상위 버전 사용 시 빌드 실패하므로 반드시 JDK 17 사용)
+export JAVA_HOME=/opt/homebrew/opt/openjdk@17/libexec/openjdk.jdk/Contents/Home
 
-# 데이터베이스 생성
-createdb fingertip_dev
-
-# 사용자 생성 (기본: postgres / postgres)
-psql -U postgres
-CREATE USER postgres WITH PASSWORD 'postgres';
-ALTER ROLE postgres SUPERUSER;
+# 빌드 실행
+./gradlew build
 ```
 
-#### 2. Redis 설치
-```bash
-# macOS
-brew install redis
-
-# Redis 시작
-brew services start redis
-```
-
-#### 3. 프로젝트 설정
+#### 1. Docker 설정
 ```bash
 # 프로젝트 루트로 이동
 cd backend
 
+# PostgreSQL(janginharou DB) + Redis 실행
+docker compose up -d
+
+# 상태 확인
+docker compose ps
+```
+
+#### 2. 프로젝트 빌드 및 실행
+```bash
 # 빌드
-./gradlew build
+./gradlew clean build
 
 # 로컬 프로필로 실행
 ./gradlew bootRun --args='--spring.profiles.active=local'
@@ -112,9 +107,9 @@ cd backend
 ### 환경 변수 설정 (로컬)
 
 `application-local.yml`에 다음 환경이 자동 설정됩니다:
-- 데이터베이스: `localhost:5432/fingertip_dev`
+- 데이터베이스: `localhost:5432/janginharou` (계정: postgres/postgres)
 - Redis: `localhost:6379`
-- JWT Secret: `local-secret-key-change-in-production`
+- JWT Secret: 256비트 이상의 보안 키
 
 ### 프로덕션 환경
 

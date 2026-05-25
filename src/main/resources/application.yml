@@ -39,7 +39,7 @@ spring:
     activate:
       on-profile: local
   datasource:
-    url: jdbc:postgresql://localhost:5432/fingertip_dev
+    url: jdbc:postgresql://localhost:5432/janginharou
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
@@ -62,7 +62,7 @@ spring:
       secret-key: ${AWS_SECRET_ACCESS_KEY:localsecret}
 
 jwt:
-  secret: ${JWT_SECRET:local-secret-key-change-in-production}
+  secret: ${JWT_SECRET:ThisIsAVeryLongSecurityKeyFor256BitEncryptionThatMustBeAtLeast32CharacterLongForHS512}
   expiration: 86400000
 
 server:

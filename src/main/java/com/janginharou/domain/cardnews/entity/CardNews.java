@@ -45,4 +45,8 @@ public class CardNews extends BaseEntity {
 
     @Column(nullable = false)
     private Integer viewCount;
+
+    public void increaseViewCount() {
+        this.viewCount++;
+    }
 }

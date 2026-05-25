@@ -39,7 +39,15 @@ public class ReviewService {
     @Transactional
     public Review createReview(Review review) {
         // TODO: 후기 생성 처리 (관리자 승인 대기 상태로 시작)
-        review.setIsApproved(false);
+        review = Review.builder()
+                .user(review.getUser())
+                .experience(review.getExperience())
+                .rating(review.getRating())
+                .content(review.getContent())
+                .imageUrl(review.getImageUrl())
+                .newKnowledge(review.getNewKnowledge())
+                .isApproved(false)
+                .build();
         return reviewRepository.save(review);
     }
 

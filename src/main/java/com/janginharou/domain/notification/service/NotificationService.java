@@ -42,16 +42,15 @@ public class NotificationService {
     @Transactional
     public Notification markAsRead(Long notificationId) {
         Notification notification = getNotificationById(notificationId);
-        notification.setIsRead(true);
-        notification.setReadAt(LocalDateTime.now());
+        notification.markAsRead();
         return notificationRepository.save(notification);
     }
 
     @Transactional
     public void markAllAsRead(Long userId) {
         getUnreadNotificationsByUserId(userId).forEach(notification -> {
-            notification.setIsRead(true);
-            notification.setReadAt(LocalDateTime.now());
+            notification.markAsRead();
+            notificationRepository.save(notification);
         });
     }
 
@@ -59,15 +58,21 @@ public class NotificationService {
     @Transactional
     public void sendNotificationAsync(Notification notification) {
         // TODO: 푸시 알림 서버 호출 (Firebase Cloud Messaging, OneSignal 등)
-        notification.setIsSent(true);
+        notification.markAsSent();
         notificationRepository.save(notification);
     }
 
     @Transactional
     public Notification createAndSendNotification(Notification notification) {
-        notification.setIsRead(false);
-        notification.setIsSent(false);
-        Notification savedNotification = notificationRepository.save(notification);
+        Notification newNotification = Notification.of(
+                notification.getUser(),
+                notification.getTitle(),
+                notification.getMessage(),
+                notification.getType(),
+                notification.getRelatedId(),
+                notification.getRelatedType()
+        );
+        Notification savedNotification = notificationRepository.save(newNotification);
         sendNotificationAsync(savedNotification);
         return savedNotification;
     }

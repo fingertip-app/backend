@@ -35,7 +35,14 @@ public class ReservationService {
     @Transactional
     public Reservation createReservation(Reservation reservation) {
         // TODO: 예약 생성 처리 (상태는 PENDING으로, 장인에게 알림 전송)
-        reservation.setStatus(ReservationStatus.PENDING);
+        reservation = Reservation.builder()
+                .user(reservation.getUser())
+                .experience(reservation.getExperience())
+                .numberOfParticipants(reservation.getNumberOfParticipants())
+                .totalPrice(reservation.getTotalPrice())
+                .status(ReservationStatus.PENDING)
+                .isNotificationSent(false)
+                .build();
         return reservationRepository.save(reservation);
     }
 

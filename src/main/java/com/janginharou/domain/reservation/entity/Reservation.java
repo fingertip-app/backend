@@ -52,4 +52,28 @@ public class Reservation extends BaseEntity {
 
     @Column(nullable = false)
     private Boolean isNotificationSent;
+
+    public void approve() {
+        this.status = ReservationStatus.APPROVED;
+    }
+
+    public void pay(String paymentKey, String paymentOrderId) {
+        this.status = ReservationStatus.PAID;
+        this.paymentKey = paymentKey;
+        this.paymentOrderId = paymentOrderId;
+    }
+
+    public void confirm() {
+        this.status = ReservationStatus.CONFIRMED;
+    }
+
+    public void reject(String rejectionReason) {
+        this.status = ReservationStatus.REJECTED;
+        this.rejectionReason = rejectionReason;
+    }
+
+    public void cancel(String cancellationReason) {
+        this.status = ReservationStatus.CANCELLED;
+        this.cancellationReason = cancellationReason;
+    }
 }
