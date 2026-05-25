@@ -1,0 +1,52 @@
+package com.janginharou.domain.user.controller;
+
+import com.janginharou.domain.user.dto.UserRequest;
+import com.janginharou.domain.user.dto.UserResponse;
+import com.janginharou.domain.user.service.UserService;
+import com.janginharou.global.common.ApiResponse;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+@RestController
+@RequestMapping("/api/users")
+@RequiredArgsConstructor
+@Tag(name = "User API", description = "사용자 관련 API")
+public class UserController {
+
+    private final UserService userService;
+
+    @GetMapping("/{userId}")
+    @Operation(summary = "사용자 조회", description = "사용자 ID로 사용자 정보 조회")
+    public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable Long userId) {
+        UserResponse response = UserResponse.from(userService.getUserById(userId));
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PostMapping
+    @Operation(summary = "사용자 생성", description = "새로운 사용자 생성")
+    public ResponseEntity<ApiResponse<UserResponse>> createUser(@RequestBody UserRequest request) {
+        // TODO: 소셜 로그인 토큰 검증 후 사용자 저장
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ApiResponse.ok(null, "User created successfully"));
+    }
+
+    @PutMapping("/{userId}")
+    @Operation(summary = "사용자 수정", description = "사용자 정보 수정")
+    public ResponseEntity<ApiResponse<UserResponse>> updateUser(
+            @PathVariable Long userId,
+            @RequestBody UserRequest request) {
+        // TODO: 사용자 정보 수정 처리
+        return ResponseEntity.ok(ApiResponse.ok(null, "User updated successfully"));
+    }
+
+    @DeleteMapping("/{userId}")
+    @Operation(summary = "사용자 삭제", description = "사용자 삭제 (탈퇴)")
+    public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long userId) {
+        // TODO: 사용자 탈퇴 처리
+        return ResponseEntity.ok(ApiResponse.ok(null, "User deleted successfully"));
+    }
+}
