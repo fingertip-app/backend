@@ -49,7 +49,7 @@ public class ReviewController {
     }
 
     @PostMapping
-    @Operation(summary = "후기 작성", description = "새로운 후기 작성 (예약 완료된 booking 기준)")
+    @Operation(summary = "후기 작성", description = "새로운 후기 작성 (예약 완료된 Reservation 기준)")
     public ResponseEntity<ApiResponse<ReviewResponse>> createReview(@RequestBody ReviewRequest request) {
         // TODO: 현재 로그인 사용자 ID 추출 후 후기 생성
         return ResponseEntity.status(HttpStatus.CREATED)

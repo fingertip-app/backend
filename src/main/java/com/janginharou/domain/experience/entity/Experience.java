@@ -9,7 +9,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
-import java.util.List;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "experiences")
@@ -23,49 +23,42 @@ public class Experience extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "artisan_id", nullable = false)
     private Artisan artisan;
 
-    @Column(nullable = false, length = 255)
+    @Column(nullable = false)
     private String title;
 
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @Column(columnDefinition = "TEXT")
-    private String culturalStory;
-
-    @Column(nullable = false, length = 100)
-    private String category;
-
-    @Column(nullable = false, precision = 10, scale = 2)
+    @Column(nullable = false)
     private BigDecimal price;
 
     @Column(nullable = false)
-    private Integer durationMinutes;
+    private LocalDateTime startDateTime;
+
+    @Column(nullable = false)
+    private LocalDateTime endDateTime;
 
     @Column(nullable = false)
     private Integer maxParticipants;
 
-    @Column(length = 20)
-    private String difficulty;  // easy, medium, hard
+    private Integer currentParticipants;
 
     @ElementCollection
-    @CollectionTable(name = "experience_supported_languages", joinColumns = @JoinColumn(name = "experience_id"))
+    @CollectionTable(name = "experience_languages", joinColumns = @JoinColumn(name = "experience_id"))
     @Column(name = "language")
-    private List<String> supportedLanguages;
+    private java.util.Set<String> supportedLanguages;
 
-    @Column(columnDefinition = "TEXT")
-    private String locationAddress;
-
-    @Column(precision = 10, scale = 7)
-    private BigDecimal locationLat;
-
-    @Column(precision = 10, scale = 7)
-    private BigDecimal locationLng;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private ExperienceDifficulty difficulty;
 
     @Column(nullable = false)
-    @Builder.Default
-    private Boolean isActive = true;
+    private Boolean isActive;
+
+    private String imageUrl;
+    private String location;
 }

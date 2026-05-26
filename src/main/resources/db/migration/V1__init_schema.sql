@@ -76,8 +76,8 @@ CREATE TABLE experience_schedules (
     is_active        BOOLEAN   NOT NULL DEFAULT TRUE
 );
 
--- bookings
-CREATE TABLE bookings (
+-- Reservations
+CREATE TABLE Reservations (
     id              BIGSERIAL      PRIMARY KEY,
     user_id         BIGINT         NOT NULL REFERENCES users(id),
     experience_id   BIGINT         NOT NULL REFERENCES experiences(id),
@@ -94,7 +94,7 @@ CREATE TABLE bookings (
 -- reviews
 CREATE TABLE reviews (
     id              BIGSERIAL     PRIMARY KEY,
-    booking_id      BIGINT        NOT NULL UNIQUE REFERENCES bookings(id),
+    Reservation_id      BIGINT        NOT NULL UNIQUE REFERENCES Reservations(id),
     user_id         BIGINT        NOT NULL REFERENCES users(id),
     experience_id   BIGINT        NOT NULL REFERENCES experiences(id),
     rating          INTEGER       NOT NULL,

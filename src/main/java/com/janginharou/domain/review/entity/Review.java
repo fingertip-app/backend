@@ -1,7 +1,7 @@
 package com.janginharou.domain.review.entity;
 
 import com.janginharou.domain.experience.entity.Experience;
-import com.janginharou.domain.reservation.entity.Booking;
+import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -29,8 +29,8 @@ public class Review {
     private Long id;
 
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "booking_id", nullable = false, unique = true)
-    private Booking booking;
+    @JoinColumn(name = "Reservation_id", nullable = false, unique = true)
+    private Reservation Reservation;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)

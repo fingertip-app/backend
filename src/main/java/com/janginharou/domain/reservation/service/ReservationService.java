@@ -37,13 +37,13 @@ public class ReservationService {
     );
 
     @Transactional(readOnly = true)
-    public Booking getBookingById(Long bookingId) {
-        return reservationRepository.findById(bookingId)
-                .orElseThrow(() -> new ResourceNotFoundException("Booking", "id", bookingId));
+    public Reservation getReservationById(Long reservationId) {
+        return reservationRepository.findById(reservationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Reservation", "id", reservationId));
     }
 
     @Transactional(readOnly = true)
-    public List<Booking> getBookingsByUserId(Long userId) {
+    public List<Reservation> getReservationsByUserId(Long userId) {
         return reservationRepository.findByUserId(userId);
     }
 
@@ -131,8 +131,8 @@ public class ReservationService {
     }
 
     @Transactional(readOnly = true)
-    public List<Booking> getPendingBookings() {
-        return reservationRepository.findByStatus(BookingStatus.PENDING);
+    public List<Reservation> getPendingReservations() {
+        return reservationRepository.findByStatus(ReservationStatus.PENDING);
     }
 
     @Transactional(readOnly = true)

@@ -18,7 +18,7 @@ import java.util.List;
 @RestController
 @RequestMapping("/reservations")
 @RequiredArgsConstructor
-@Tag(name = "Booking API", description = "예약 관련 API")
+@Tag(name = "Reservation API", description = "예약 관련 API")
 public class ReservationController {
 
     private final ReservationService reservationService;
@@ -37,17 +37,17 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
-    @GetMapping("/{bookingId}")
+    @GetMapping("/{ReservationId}")
     @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회")
-    public ResponseEntity<ApiResponse<ReservationResponse>> getBooking(@PathVariable Long bookingId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.getBookingById(bookingId));
+    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(@PathVariable Long ReservationId) {
+        ReservationResponse response = ReservationResponse.from(reservationService.getReservationById(ReservationId));
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "사용자 예약 목록", description = "사용자의 모든 예약 조회")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserBookings(@PathVariable Long userId) {
-        List<ReservationResponse> responses = reservationService.getBookingsByUserId(userId)
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserReservations(@PathVariable Long userId) {
+        List<ReservationResponse> responses = reservationService.getReservationsByUserId(userId)
                 .stream()
                 .map(ReservationResponse::from)
                 .toList();
@@ -56,8 +56,8 @@ public class ReservationController {
 
     @GetMapping("/experience/{experienceId}")
     @Operation(summary = "체험의 예약 목록", description = "특정 체험의 모든 예약 조회")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getExperienceBookings(@PathVariable Long experienceId) {
-        List<ReservationResponse> responses = reservationService.getBookingsByExperienceId(experienceId)
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getExperienceReservations(@PathVariable Long experienceId) {
+        List<ReservationResponse> responses = reservationService.getReservationsByExperienceId(experienceId)
                 .stream()
                 .map(ReservationResponse::from)
                 .toList();
@@ -72,14 +72,14 @@ public class ReservationController {
                 .body(ApiResponse.ok(null, "Reservation created successfully"));
     }
 
-    @PostMapping("/{bookingId}/approve")
+    @PostMapping("/{ReservationId}/approve")
     @Operation(summary = "예약 승인", description = "예약 승인 (장인용)")
     public ResponseEntity<ApiResponse<ReservationResponse>> approveReservation(@PathVariable Long reservationId) {
         // TODO: 장인 권한 확인 후 예약 승인 (PENDING → APPROVED)
         return ResponseEntity.ok(ApiResponse.ok(null, "Reservation approved successfully"));
     }
 
-    @PostMapping("/{bookingId}/reject")
+    @PostMapping("/{ReservationId}/reject")
     @Operation(summary = "예약 거절", description = "예약 거절 (장인용)")
     public ResponseEntity<ApiResponse<ReservationResponse>> rejectReservation(
             @PathVariable Long reservationId,

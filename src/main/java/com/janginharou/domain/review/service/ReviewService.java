@@ -33,7 +33,7 @@ public class ReviewService {
 
     @Transactional
     public Review createReview(Review review) {
-        // TODO: 후기 생성 처리 (예약 완료된 booking에 대해서만 작성 가능)
+        // TODO: 후기 생성 처리 (예약 완료된 Reservation에 대해서만 작성 가능)
         return reviewRepository.save(review);
     }
 
