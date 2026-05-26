@@ -25,6 +25,9 @@ public class ReservationResponse {
     private LocalDateTime reservedDateTime;
     private String rejectionReason;
     private String cancellationReason;
+    private String requestMessage;
+    private String paymentKey;
+    private String paymentOrderId;
     private Boolean isNotificationSent;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -40,6 +43,9 @@ public class ReservationResponse {
                 .reservedDateTime(reservation.getReservedDateTime())
                 .rejectionReason(reservation.getRejectionReason())
                 .cancellationReason(reservation.getCancellationReason())
+                .requestMessage(reservation.getRequestMessage())
+                .paymentKey(reservation.getPaymentKey())
+                .paymentOrderId(reservation.getPaymentOrderId())
                 .isNotificationSent(reservation.getIsNotificationSent())
                 .createdAt(reservation.getCreatedAt())
                 .updatedAt(reservation.getUpdatedAt())
