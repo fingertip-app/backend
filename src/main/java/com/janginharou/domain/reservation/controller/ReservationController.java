@@ -37,10 +37,10 @@ public class ReservationController {
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
-    @GetMapping("/{ReservationId}")
+    @GetMapping("/{reservationId}")
     @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회")
-    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(@PathVariable Long ReservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.getReservationById(ReservationId));
+    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(@PathVariable Long reservationId) {
+        ReservationResponse response = ReservationResponse.from(reservationService.getReservationById(reservationId));
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -72,14 +72,14 @@ public class ReservationController {
                 .body(ApiResponse.ok(null, "Reservation created successfully"));
     }
 
-    @PostMapping("/{ReservationId}/approve")
+    @PostMapping("/{reservationId}/approve")
     @Operation(summary = "예약 승인", description = "예약 승인 (장인용)")
     public ResponseEntity<ApiResponse<ReservationResponse>> approveReservation(@PathVariable Long reservationId) {
         // TODO: 장인 권한 확인 후 예약 승인 (PENDING → APPROVED)
         return ResponseEntity.ok(ApiResponse.ok(null, "Reservation approved successfully"));
     }
 
-    @PostMapping("/{ReservationId}/reject")
+    @PostMapping("/{reservationId}/reject")
     @Operation(summary = "예약 거절", description = "예약 거절 (장인용)")
     public ResponseEntity<ApiResponse<ReservationResponse>> rejectReservation(
             @PathVariable Long reservationId,

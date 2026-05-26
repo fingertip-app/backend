@@ -17,7 +17,7 @@ import java.util.List;
 public class ReviewResponse {
 
     private Long id;
-    private Long ReservationId;
+    private Long reservationId;
     private Long userId;
     private Long experienceId;
     private Integer rating;
@@ -31,7 +31,7 @@ public class ReviewResponse {
     public static ReviewResponse from(Review review) {
         return ReviewResponse.builder()
                 .id(review.getId())
-                .ReservationId(review.getReservation().getId())
+                .reservationId(review.getReservation().getId())
                 .userId(review.getUser().getId())
                 .experienceId(review.getExperience().getId())
                 .rating(review.getRating())
