@@ -1,7 +1,7 @@
 package com.janginharou.domain.reservation.dto;
 
-import com.janginharou.domain.reservation.entity.Booking;
-import com.janginharou.domain.reservation.entity.BookingStatus;
+import com.janginharou.domain.reservation.entity.Reservation;
+import com.janginharou.domain.reservation.entity.ReservationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,8 +19,7 @@ public class ReservationResponse {
     private Long id;
     private Long userId;
     private Long experienceId;
-    private Long scheduleId;
-    private Integer participants;
+    private Integer numberOfParticipants;
     private BigDecimal totalPrice;
     private ReservationStatus status;
     private LocalDateTime reservedDateTime;
@@ -33,7 +32,7 @@ public class ReservationResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static ReservationResponse from(Booking booking) {
+    public static ReservationResponse from(Reservation reservation) {
         return ReservationResponse.builder()
                 .id(reservation.getId())
                 .userId(reservation.getUser().getId())
