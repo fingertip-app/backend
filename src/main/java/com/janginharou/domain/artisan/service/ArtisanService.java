@@ -1,7 +1,6 @@
 package com.janginharou.domain.artisan.service;
 
 import com.janginharou.domain.artisan.entity.Artisan;
-import com.janginharou.domain.artisan.entity.ArtisanVerificationStatus;
 import com.janginharou.domain.artisan.repository.ArtisanRepository;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -29,26 +28,19 @@ public class ArtisanService {
     }
 
     @Transactional(readOnly = true)
-    public List<Artisan> getApprovedArtisans() {
-        return artisanRepository.findByVerificationStatus(ArtisanVerificationStatus.APPROVED);
+    public List<Artisan> getVerifiedArtisans() {
+        return artisanRepository.findByIsVerifiedTrue();
     }
 
     @Transactional
     public Artisan createArtisan(Artisan artisan) {
-        // TODO: 장인 가입 신청 처리 (인증서 S3 업로드, 초기 상태 PENDING으로 설정)
+        // TODO: 장인 가입 신청 처리
         return artisanRepository.save(artisan);
     }
 
     @Transactional
-    public Artisan approveArtisan(Long artisanId) {
+    public Artisan verifyArtisan(Long artisanId) {
         // TODO: 장인 인증 승인 처리 (관리자용)
-        Artisan artisan = getArtisanById(artisanId);
-        return artisan;
-    }
-
-    @Transactional
-    public Artisan rejectArtisan(Long artisanId, String rejectionReason) {
-        // TODO: 장인 인증 거절 처리 (거절 사유 저장)
         Artisan artisan = getArtisanById(artisanId);
         return artisan;
     }
