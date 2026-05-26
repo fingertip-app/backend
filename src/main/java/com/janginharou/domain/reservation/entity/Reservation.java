@@ -49,6 +49,7 @@ public class Reservation extends BaseEntity {
 
     private String rejectionReason;
     private String cancellationReason;
+    private String requestMessage;
 
     @Column(nullable = false)
     private Boolean isNotificationSent;
