@@ -39,7 +39,7 @@ spring:
     activate:
       on-profile: local
   datasource:
-    url: jdbc:postgresql://localhost:5433/janginharou
+    url: jdbc:postgresql://localhost:5432/janginharou
     username: postgres
     password: postgres
     driver-class-name: org.postgresql.Driver
