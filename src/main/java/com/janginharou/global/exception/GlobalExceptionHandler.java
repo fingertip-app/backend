@@ -28,6 +28,15 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
     }
 
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<ApiResponse<Void>> handleExternalService(ExternalServiceException e) {
+        HttpStatus status = "AI_TIMEOUT".equals(e.getErrorCode())
+                ? HttpStatus.GATEWAY_TIMEOUT
+                : HttpStatus.SERVICE_UNAVAILABLE;
+        return ResponseEntity.status(status)
+                .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<ApiResponse<Void>> handleValidationException(MethodArgumentNotValidException e) {
         String message = e.getBindingResult().getFieldErrors().stream()
