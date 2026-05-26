@@ -17,6 +17,11 @@ public class ReservationRequest {
     private Long experienceId;
 
     @NotNull
+    private Long scheduleId;
+
+    @NotNull
     @Positive
-    private Integer numberOfParticipants;
+    private Integer participants;
+
+    private String requestMessage;
 }

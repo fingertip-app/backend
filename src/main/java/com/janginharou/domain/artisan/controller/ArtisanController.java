@@ -35,10 +35,10 @@ public class ArtisanController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
-    @GetMapping("/approved")
-    @Operation(summary = "승인된 장인 목록", description = "승인된 장인 목록 조회")
-    public ResponseEntity<ApiResponse<List<ArtisanResponse>>> getApprovedArtisans() {
-        List<ArtisanResponse> responses = artisanService.getApprovedArtisans()
+    @GetMapping("/verified")
+    @Operation(summary = "인증된 장인 목록", description = "인증된 장인 목록 조회")
+    public ResponseEntity<ApiResponse<List<ArtisanResponse>>> getVerifiedArtisans() {
+        List<ArtisanResponse> responses = artisanService.getVerifiedArtisans()
                 .stream()
                 .map(ArtisanResponse::from)
                 .toList();

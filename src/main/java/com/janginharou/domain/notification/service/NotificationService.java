@@ -1,15 +1,12 @@
 package com.janginharou.domain.notification.service;
 
 import com.janginharou.domain.notification.entity.Notification;
-import com.janginharou.domain.notification.entity.NotificationType;
 import com.janginharou.domain.notification.repository.NotificationRepository;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
@@ -54,32 +51,10 @@ public class NotificationService {
         });
     }
 
-    @Async("taskExecutor")
     @Transactional
-    public void sendNotificationAsync(Notification notification) {
+    public Notification createNotification(Notification notification) {
         // TODO: 푸시 알림 서버 호출 (Firebase Cloud Messaging, OneSignal 등)
-        notification.markAsSent();
-        notificationRepository.save(notification);
-    }
-
-    @Transactional
-    public Notification createAndSendNotification(Notification notification) {
-        Notification newNotification = Notification.of(
-                notification.getUser(),
-                notification.getTitle(),
-                notification.getMessage(),
-                notification.getType(),
-                notification.getRelatedId(),
-                notification.getRelatedType()
-        );
-        Notification savedNotification = notificationRepository.save(newNotification);
-        sendNotificationAsync(savedNotification);
-        return savedNotification;
-    }
-
-    @Transactional(readOnly = true)
-    public List<Notification> getPendingNotifications(NotificationType type) {
-        return notificationRepository.findByTypeAndIsSentFalse(type);
+        return notificationRepository.save(notification);
     }
 
     @Transactional

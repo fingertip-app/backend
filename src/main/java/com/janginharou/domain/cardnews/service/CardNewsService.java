@@ -27,28 +27,18 @@ public class CardNewsService {
     }
 
     @Transactional(readOnly = true)
-    public List<CardNews> getCardNewsByKContentType(String kContentType) {
-        return cardNewsRepository.findByKContentType(kContentType);
+    public List<CardNews> getCardNewsByContentType(String contentType) {
+        return cardNewsRepository.findByContentType(contentType);
     }
 
     @Transactional(readOnly = true)
     public List<CardNews> getCardNewsByTag(String tag) {
-        return cardNewsRepository.findByPersonalizationTagsContainingAndIsActiveTrue(tag);
+        return cardNewsRepository.findByCategoryTagsContainingAndIsActiveTrue(tag);
     }
 
     @Transactional
     public CardNews createCardNews(CardNews cardNews) {
         // TODO: 카드뉴스 생성 처리 (이미지 S3 업로드)
-        cardNews = CardNews.builder()
-                .title(cardNews.getTitle())
-                .description(cardNews.getDescription())
-                .kContentType(cardNews.getKContentType())
-                .linkedExperience(cardNews.getLinkedExperience())
-                .imageUrl(cardNews.getImageUrl())
-                .personalizationTags(cardNews.getPersonalizationTags())
-                .isActive(cardNews.getIsActive())
-                .viewCount(0)
-                .build();
         return cardNewsRepository.save(cardNews);
     }
 
@@ -61,15 +51,6 @@ public class CardNewsService {
 
     @Transactional
     public void deleteCardNews(Long cardNewsId) {
-        // TODO: 카드뉴스 삭제 처리
         cardNewsRepository.deleteById(cardNewsId);
-    }
-
-    @Transactional
-    public void incrementViewCount(Long cardNewsId) {
-        // TODO: 조회수 증가 처리 (Redis 캐싱 고려)
-        CardNews cardNews = getCardNewsById(cardNewsId);
-        cardNews.increaseViewCount();
-        cardNewsRepository.save(cardNews);
     }
 }

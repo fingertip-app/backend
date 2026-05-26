@@ -1,7 +1,7 @@
 package com.janginharou.domain.reservation.dto;
 
-import com.janginharou.domain.reservation.entity.Reservation;
-import com.janginharou.domain.reservation.entity.ReservationStatus;
+import com.janginharou.domain.reservation.entity.Booking;
+import com.janginharou.domain.reservation.entity.BookingStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -19,30 +19,28 @@ public class ReservationResponse {
     private Long id;
     private Long userId;
     private Long experienceId;
-    private Integer numberOfParticipants;
+    private Long scheduleId;
+    private Integer participants;
     private BigDecimal totalPrice;
-    private ReservationStatus status;
-    private LocalDateTime reservedDateTime;
-    private String rejectionReason;
-    private String cancellationReason;
-    private Boolean isNotificationSent;
+    private BookingStatus status;
+    private String requestMessage;
+    private String qrCode;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
-    public static ReservationResponse from(Reservation reservation) {
+    public static ReservationResponse from(Booking booking) {
         return ReservationResponse.builder()
-                .id(reservation.getId())
-                .userId(reservation.getUser().getId())
-                .experienceId(reservation.getExperience().getId())
-                .numberOfParticipants(reservation.getNumberOfParticipants())
-                .totalPrice(reservation.getTotalPrice())
-                .status(reservation.getStatus())
-                .reservedDateTime(reservation.getReservedDateTime())
-                .rejectionReason(reservation.getRejectionReason())
-                .cancellationReason(reservation.getCancellationReason())
-                .isNotificationSent(reservation.getIsNotificationSent())
-                .createdAt(reservation.getCreatedAt())
-                .updatedAt(reservation.getUpdatedAt())
+                .id(booking.getId())
+                .userId(booking.getUser().getId())
+                .experienceId(booking.getExperience().getId())
+                .scheduleId(booking.getSchedule().getId())
+                .participants(booking.getParticipants())
+                .totalPrice(booking.getTotalPrice())
+                .status(booking.getStatus())
+                .requestMessage(booking.getRequestMessage())
+                .qrCode(booking.getQrCode())
+                .createdAt(booking.getCreatedAt())
+                .updatedAt(booking.getUpdatedAt())
                 .build();
     }
 }

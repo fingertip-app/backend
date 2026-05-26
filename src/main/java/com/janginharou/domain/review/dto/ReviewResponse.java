@@ -6,7 +6,9 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
@@ -15,28 +17,30 @@ import java.time.LocalDateTime;
 public class ReviewResponse {
 
     private Long id;
+    private Long bookingId;
     private Long userId;
     private Long experienceId;
     private Integer rating;
     private String content;
-    private String imageUrl;
-    private String newKnowledge;
-    private Boolean isApproved;
+    private String newLearnings;
+    private List<String> imageUrls;
+    private BigDecimal sentimentScore;
+    private List<String> keywords;
     private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
 
     public static ReviewResponse from(Review review) {
         return ReviewResponse.builder()
                 .id(review.getId())
+                .bookingId(review.getBooking().getId())
                 .userId(review.getUser().getId())
                 .experienceId(review.getExperience().getId())
                 .rating(review.getRating())
                 .content(review.getContent())
-                .imageUrl(review.getImageUrl())
-                .newKnowledge(review.getNewKnowledge())
-                .isApproved(review.getIsApproved())
+                .newLearnings(review.getNewLearnings())
+                .imageUrls(review.getImageUrls())
+                .sentimentScore(review.getSentimentScore())
+                .keywords(review.getKeywords())
                 .createdAt(review.getCreatedAt())
-                .updatedAt(review.getUpdatedAt())
                 .build();
     }
 }

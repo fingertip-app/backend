@@ -22,9 +22,8 @@ public class CardNewsController {
     private final CardNewsService cardNewsService;
 
     @GetMapping("/{cardNewsId}")
-    @Operation(summary = "카드뉴스 조회", description = "카드뉴스 ID로 조회 (조회수 증가)")
+    @Operation(summary = "카드뉴스 조회", description = "카드뉴스 ID로 조회")
     public ResponseEntity<ApiResponse<CardNewsResponse>> getCardNews(@PathVariable Long cardNewsId) {
-        cardNewsService.incrementViewCount(cardNewsId);
         CardNewsResponse response = CardNewsResponse.from(cardNewsService.getCardNewsById(cardNewsId));
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
@@ -39,10 +38,10 @@ public class CardNewsController {
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
-    @GetMapping("/type/{kContentType}")
-    @Operation(summary = "유형별 카드뉴스", description = "K-콘텐츠 유형별 카드뉴스 조회")
-    public ResponseEntity<ApiResponse<List<CardNewsResponse>>> getCardNewsByType(@PathVariable String kContentType) {
-        List<CardNewsResponse> responses = cardNewsService.getCardNewsByKContentType(kContentType)
+    @GetMapping("/type/{contentType}")
+    @Operation(summary = "유형별 카드뉴스", description = "콘텐츠 유형별 카드뉴스 조회 (k_drama, k_pop, k_anime, festival)")
+    public ResponseEntity<ApiResponse<List<CardNewsResponse>>> getCardNewsByType(@PathVariable String contentType) {
+        List<CardNewsResponse> responses = cardNewsService.getCardNewsByContentType(contentType)
                 .stream()
                 .map(CardNewsResponse::from)
                 .toList();
@@ -50,7 +49,7 @@ public class CardNewsController {
     }
 
     @GetMapping("/tag/{tag}")
-    @Operation(summary = "태그별 카드뉴스", description = "개인화 태그별 카드뉴스 조회")
+    @Operation(summary = "태그별 카드뉴스", description = "카테고리 태그별 카드뉴스 조회")
     public ResponseEntity<ApiResponse<List<CardNewsResponse>>> getCardNewsByTag(@PathVariable String tag) {
         List<CardNewsResponse> responses = cardNewsService.getCardNewsByTag(tag)
                 .stream()
