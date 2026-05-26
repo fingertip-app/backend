@@ -22,25 +22,34 @@ public class ReservationResponse {
     private Long scheduleId;
     private Integer participants;
     private BigDecimal totalPrice;
-    private BookingStatus status;
+    private ReservationStatus status;
+    private LocalDateTime reservedDateTime;
+    private String rejectionReason;
+    private String cancellationReason;
     private String requestMessage;
-    private String qrCode;
+    private String paymentKey;
+    private String paymentOrderId;
+    private Boolean isNotificationSent;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
     public static ReservationResponse from(Booking booking) {
         return ReservationResponse.builder()
-                .id(booking.getId())
-                .userId(booking.getUser().getId())
-                .experienceId(booking.getExperience().getId())
-                .scheduleId(booking.getSchedule().getId())
-                .participants(booking.getParticipants())
-                .totalPrice(booking.getTotalPrice())
-                .status(booking.getStatus())
-                .requestMessage(booking.getRequestMessage())
-                .qrCode(booking.getQrCode())
-                .createdAt(booking.getCreatedAt())
-                .updatedAt(booking.getUpdatedAt())
+                .id(reservation.getId())
+                .userId(reservation.getUser().getId())
+                .experienceId(reservation.getExperience().getId())
+                .numberOfParticipants(reservation.getNumberOfParticipants())
+                .totalPrice(reservation.getTotalPrice())
+                .status(reservation.getStatus())
+                .reservedDateTime(reservation.getReservedDateTime())
+                .rejectionReason(reservation.getRejectionReason())
+                .cancellationReason(reservation.getCancellationReason())
+                .requestMessage(reservation.getRequestMessage())
+                .paymentKey(reservation.getPaymentKey())
+                .paymentOrderId(reservation.getPaymentOrderId())
+                .isNotificationSent(reservation.getIsNotificationSent())
+                .createdAt(reservation.getCreatedAt())
+                .updatedAt(reservation.getUpdatedAt())
                 .build();
     }
 }

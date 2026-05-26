@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -21,7 +23,9 @@ public class ReservationRequest {
 
     @NotNull
     @Positive
-    private Integer participants;
+    private Integer numberOfParticipants;
+
+    private LocalDateTime reservedDateTime;
 
     private String requestMessage;
 }

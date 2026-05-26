@@ -1,7 +1,9 @@
 package com.janginharou.domain.reservation.repository;
 
-import com.janginharou.domain.reservation.entity.Booking;
-import com.janginharou.domain.reservation.entity.BookingStatus;
+import com.janginharou.domain.reservation.entity.Reservation;
+import com.janginharou.domain.reservation.entity.ReservationStatus;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -18,5 +20,20 @@ public interface ReservationRepository extends JpaRepository<Booking, Long> {
 
     List<Booking> findByUserIdAndStatus(Long userId, BookingStatus status);
 
-    List<Booking> findByExperienceIdAndStatus(Long experienceId, BookingStatus status);
+    List<Reservation> findByExperienceIdAndStatus(Long experienceId, ReservationStatus status);
+
+    boolean existsByUserIdAndExperienceIdAndStatusIn(Long userId, Long experienceId, List<ReservationStatus> statuses);
+
+    @Query("""
+            select coalesce(sum(r.numberOfParticipants), 0)
+            from Reservation r
+            where r.experience.id = :experienceId
+              and r.status in :statuses
+            """)
+    Integer sumParticipantsByExperienceIdAndStatusIn(
+            @Param("experienceId") Long experienceId,
+            @Param("statuses") List<ReservationStatus> statuses
+    );
+
+    Optional<Reservation> findByPaymentOrderId(String paymentOrderId);
 }
