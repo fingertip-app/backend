@@ -13,10 +13,7 @@ public interface CardNewsRepository extends JpaRepository<CardNews, Long> {
 
     List<CardNews> findByIsActiveTrue();
 
-    @Query("select c from CardNews c where c.kContentType = :kContentType")
-    List<CardNews> findByKContentType(@Param("kContentType") String kContentType);
+    List<CardNews> findByKContentType(String kContentType);
 
-    List<CardNews> findByLinkedExperienceId(Long experienceId);
-
-    List<CardNews> findByPersonalizationTagsContainingAndIsActiveTrue(String tag);
+    List<CardNews> findByCategoryTagsContainingAndIsActiveTrue(String tag);
 }

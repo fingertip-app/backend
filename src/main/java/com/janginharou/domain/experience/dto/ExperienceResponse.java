@@ -1,7 +1,6 @@
 package com.janginharou.domain.experience.dto;
 
 import com.janginharou.domain.experience.entity.Experience;
-import com.janginharou.domain.experience.entity.ExperienceDifficulty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,7 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Set;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
@@ -21,16 +20,17 @@ public class ExperienceResponse {
     private Long artisanId;
     private String title;
     private String description;
+    private String culturalStory;
+    private String category;
     private BigDecimal price;
-    private LocalDateTime startDateTime;
-    private LocalDateTime endDateTime;
+    private Integer durationMinutes;
     private Integer maxParticipants;
-    private Integer currentParticipants;
-    private Set<String> supportedLanguages;
-    private ExperienceDifficulty difficulty;
+    private String difficulty;
+    private List<String> supportedLanguages;
+    private String locationAddress;
+    private BigDecimal locationLat;
+    private BigDecimal locationLng;
     private Boolean isActive;
-    private String imageUrl;
-    private String location;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -40,16 +40,17 @@ public class ExperienceResponse {
                 .artisanId(experience.getArtisan().getId())
                 .title(experience.getTitle())
                 .description(experience.getDescription())
+                .culturalStory(experience.getCulturalStory())
+                .category(experience.getCategory())
                 .price(experience.getPrice())
-                .startDateTime(experience.getStartDateTime())
-                .endDateTime(experience.getEndDateTime())
+                .durationMinutes(experience.getDurationMinutes())
                 .maxParticipants(experience.getMaxParticipants())
-                .currentParticipants(experience.getCurrentParticipants())
-                .supportedLanguages(experience.getSupportedLanguages())
                 .difficulty(experience.getDifficulty())
+                .supportedLanguages(experience.getSupportedLanguages())
+                .locationAddress(experience.getLocationAddress())
+                .locationLat(experience.getLocationLat())
+                .locationLng(experience.getLocationLng())
                 .isActive(experience.getIsActive())
-                .imageUrl(experience.getImageUrl())
-                .location(experience.getLocation())
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();

@@ -1,5 +1,6 @@
-package com.janginharou.domain.notification.entity;
+package com.janginharou.domain.wishlist.entity;
 
+import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.user.entity.User;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -12,13 +13,14 @@ import org.springframework.data.jpa.domain.support.AuditingEntityListener;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "notifications")
+@Table(name = "wishlists",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"user_id", "experience_id"}))
 @EntityListeners(AuditingEntityListener.class)
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Notification {
+public class Wishlist {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -28,21 +30,11 @@ public class Notification {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 255)
-    private String title;
-
-    @Column(nullable = false, columnDefinition = "TEXT")
-    private String body;
-
-    @Column(nullable = false)
-    @Builder.Default
-    private Boolean isRead = false;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "experience_id", nullable = false)
+    private Experience experience;
 
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
-
-    public void markAsRead() {
-        this.isRead = true;
-    }
 }
