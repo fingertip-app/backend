@@ -1,8 +1,6 @@
 package com.janginharou.domain.user.dto;
 
-import com.janginharou.domain.user.entity.SocialProvider;
 import com.janginharou.domain.user.entity.User;
-import com.janginharou.domain.user.entity.UserRole;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,11 +16,9 @@ public class UserResponse {
 
     private Long id;
     private String email;
-    private String name;
+    private String provider;
+    private String nickname;
     private String profileImageUrl;
-    private String phoneNumber;
-    private UserRole role;
-    private SocialProvider socialProvider;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -31,11 +27,9 @@ public class UserResponse {
         return UserResponse.builder()
                 .id(user.getId())
                 .email(user.getEmail())
-                .name(user.getName())
+                .provider(user.getProvider())
+                .nickname(user.getNickname())
                 .profileImageUrl(user.getProfileImageUrl())
-                .phoneNumber(user.getPhoneNumber())
-                .role(user.getRole())
-                .socialProvider(user.getSocialProvider())
                 .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

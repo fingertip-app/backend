@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping({"/reservations", "/bookings"})
+@RequestMapping("/reservations")
 @RequiredArgsConstructor
 @Tag(name = "Reservation API", description = "예약 관련 API")
 public class ReservationController {
@@ -66,19 +66,17 @@ public class ReservationController {
 
     @PostMapping
     @Operation(summary = "예약 생성", description = "새로운 예약 생성")
-    public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(
-            @RequestParam Long userId,
-            @Validated @RequestBody ReservationRequest request) {
-        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(userId, request));
+    public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(@RequestBody ReservationRequest request) {
+        // TODO: 현재 로그인 사용자 ID 추출 후 예약 생성
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(response, "Reservation created successfully"));
+                .body(ApiResponse.ok(null, "Reservation created successfully"));
     }
 
     @PostMapping("/{reservationId}/approve")
     @Operation(summary = "예약 승인", description = "예약 승인 (장인용)")
     public ResponseEntity<ApiResponse<ReservationResponse>> approveReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.approveReservation(reservationId));
-        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation approved successfully"));
+        // TODO: 장인 권한 확인 후 예약 승인 (PENDING → APPROVED)
+        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation approved successfully"));
     }
 
     @PostMapping("/{reservationId}/reject")
@@ -86,10 +84,8 @@ public class ReservationController {
     public ResponseEntity<ApiResponse<ReservationResponse>> rejectReservation(
             @PathVariable Long reservationId,
             @RequestParam String rejectionReason) {
-        ReservationResponse response = ReservationResponse.from(
-                reservationService.rejectReservation(reservationId, rejectionReason)
-        );
-        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation rejected successfully"));
+        // TODO: 장인 권한 확인 후 예약 거절 (PENDING → REJECTED)
+        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation rejected successfully"));
     }
 
     @PostMapping("/{reservationId}/payment")
@@ -97,17 +93,15 @@ public class ReservationController {
     public ResponseEntity<ApiResponse<ReservationResponse>> processPayment(
             @PathVariable Long reservationId,
             @RequestParam String paymentKey) {
-        ReservationResponse response = ReservationResponse.from(
-                reservationService.processPayment(reservationId, paymentKey)
-        );
-        return ResponseEntity.ok(ApiResponse.ok(response, "Payment processed successfully"));
+        // TODO: 토스페이먼츠 웹훅 검증 후 결제 완료 처리 (APPROVED → PAID)
+        return ResponseEntity.ok(ApiResponse.ok(null, "Payment processed successfully"));
     }
 
     @PostMapping("/{reservationId}/confirm")
     @Operation(summary = "예약 최종 확정", description = "예약 최종 확정")
     public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId));
-        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation confirmed successfully"));
+        // TODO: 결제 완료 후 최종 확정 (PAID → CONFIRMED)
+        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation confirmed successfully"));
     }
 
     @PostMapping("/{reservationId}/cancel")
@@ -115,9 +109,7 @@ public class ReservationController {
     public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(
             @PathVariable Long reservationId,
             @RequestParam(required = false) String cancellationReason) {
-        ReservationResponse response = ReservationResponse.from(
-                reservationService.cancelReservation(reservationId, cancellationReason)
-        );
-        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation cancelled successfully"));
+        // TODO: 예약 취소 처리 및 환불 처리
+        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation cancelled successfully"));
     }
 }

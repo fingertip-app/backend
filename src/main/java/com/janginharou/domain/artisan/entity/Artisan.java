@@ -20,26 +20,33 @@ public class Artisan extends BaseEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false)
-    private String intangibleHeritageName;
+    @Column(nullable = false, length = 100)
+    private String name;
 
-    @Column(nullable = false)
-    private String intangibleHeritageType;
+    @Column(nullable = false, length = 100)
+    private String heritageCategory;
 
-    private String certificationImageUrl;
+    @Column(unique = true, length = 100)
+    private String certificationNumber;
 
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private ArtisanVerificationStatus verificationStatus;
-
+    @Column(columnDefinition = "TEXT")
     private String bio;
+
+    @Column(columnDefinition = "TEXT")
     private String profileImageUrl;
-    private Integer yearsOfExperience;
+
+    @Column(columnDefinition = "TEXT")
+    private String introVideoUrl;
 
     @Column(nullable = false)
-    private Boolean isActive;
+    @Builder.Default
+    private Boolean isVerified = false;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private Boolean isActive = true;
 }
