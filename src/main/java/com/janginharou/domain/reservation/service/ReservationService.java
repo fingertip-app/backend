@@ -64,14 +64,11 @@ public class ReservationService {
         Experience experience = experienceRepository.findById(request.getExperienceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Experience", "id", request.getExperienceId()));
 
-        validateReservableExperience(experience);
+        validateReservableExperience(experience, request.getReservedDateTime());
         validateDuplicateReservation(userId, experience.getId());
         validateCapacity(experience, request.getNumberOfParticipants());
 
         BigDecimal totalPrice = experience.getPrice().multiply(BigDecimal.valueOf(request.getNumberOfParticipants()));
-        LocalDateTime reservedDateTime = request.getReservedDateTime() != null
-                ? request.getReservedDateTime()
-                : experience.getStartDateTime();
 
         Reservation reservation = Reservation.builder()
                 .user(user)
@@ -79,7 +76,7 @@ public class ReservationService {
                 .numberOfParticipants(request.getNumberOfParticipants())
                 .totalPrice(totalPrice)
                 .status(ReservationStatus.PENDING)
-                .reservedDateTime(reservedDateTime)
+                .reservedDateTime(request.getReservedDateTime())
                 .requestMessage(request.getRequestMessage())
                 .isNotificationSent(false)
                 .build();
@@ -140,12 +137,12 @@ public class ReservationService {
         return reservationRepository.findByStatus(ReservationStatus.CONFIRMED);
     }
 
-    private void validateReservableExperience(Experience experience) {
+    private void validateReservableExperience(Experience experience, LocalDateTime reservedDateTime) {
         if (!Boolean.TRUE.equals(experience.getIsActive())) {
             throw new InvalidRequestException("Experience is not active");
         }
-        if (experience.getStartDateTime().isBefore(LocalDateTime.now())) {
-            throw new InvalidRequestException("Experience has already started");
+        if (reservedDateTime.isBefore(LocalDateTime.now())) {
+            throw new InvalidRequestException("Reserved date time has already passed");
         }
     }
 
