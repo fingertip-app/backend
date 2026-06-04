@@ -18,9 +18,27 @@ import java.net.http.HttpTimeoutException;
 @RequiredArgsConstructor
 public class FastApiClient {
 
+    private static final int MAX_PROVIDER_RETRY_ATTEMPTS = 1;
+    private static final long PROVIDER_RETRY_DELAY_MS = 500L;
+
     private final RestClient fastApiRestClient;
 
     public FastApiExplainResponse explainCulture(String query, String locale) {
+        int attempt = 0;
+        while (true) {
+            try {
+                return requestExplainCulture(query, locale);
+            } catch (RetryableProviderException e) {
+                if (attempt >= MAX_PROVIDER_RETRY_ATTEMPTS) {
+                    throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
+                }
+                attempt++;
+                sleepBeforeRetry();
+            }
+        }
+    }
+
+    private FastApiExplainResponse requestExplainCulture(String query, String locale) {
         try {
             return fastApiRestClient.post()
                     .uri("/api/v1/ai/explain")
@@ -34,6 +52,9 @@ public class FastApiClient {
                                 "AI service authentication is not configured correctly",
                                 "AI_CONFIG_ERROR"
                         );
+                    })
+                    .onStatus(this::isRetryableProviderFailure, (request, response) -> {
+                        throw new RetryableProviderException();
                     })
                     .onStatus(this::isProviderFailure, (request, response) -> {
                         throw new ExternalServiceException("AI service is unavailable", "AI_UNAVAILABLE");
@@ -53,8 +74,12 @@ public class FastApiClient {
         return status.value() == 401 || status.value() == 403;
     }
 
+    private boolean isRetryableProviderFailure(HttpStatusCode status) {
+        return status.value() == 502;
+    }
+
     private boolean isProviderFailure(HttpStatusCode status) {
-        return status.value() == 502 || status.value() == 503;
+        return status.value() == 503;
     }
 
     private boolean hasTimeoutCause(Throwable error) {
@@ -66,5 +91,17 @@ public class FastApiClient {
             cause = cause.getCause();
         }
         return false;
+    }
+
+    private void sleepBeforeRetry() {
+        try {
+            Thread.sleep(PROVIDER_RETRY_DELAY_MS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new ExternalServiceException("AI provider retry interrupted", e, "AI_UNAVAILABLE");
+        }
+    }
+
+    private static class RetryableProviderException extends RuntimeException {
     }
 }
