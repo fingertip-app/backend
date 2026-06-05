@@ -6,10 +6,10 @@
 
 ## MVP 완료 기준
 
-- 앱은 Spring API 하나만 호출해 로그인, 체험 탐색, AI 해설, 예약, 결제, QR 확인 흐름을 완료할 수 있다.
+- 앱은 Spring API 하나만 호출해 AI 추천 탭, 체험 탐색, 문화 설명, 예약, 결제, QR 확인 흐름을 완료할 수 있다.
 - 예약 상태 전이 `PENDING -> APPROVED -> PAID -> CONFIRMED`와 `REJECTED`, `CANCELLED`가 검증된다.
 - Toss Payments 테스트 webhook은 서명/중복 호출/잘못된 상태 전이를 처리한다.
-- Spring에서 FastAPI 해설 API를 호출하고 timeout 또는 실패 시 정의된 오류를 반환한다.
+- Spring에서 FastAPI 추천/문화 설명 API를 호출하고 timeout 또는 실패 시 정의된 오류를 반환한다.
 - 관리자 역할로 장인 인증 승인과 카드뉴스 관리가 가능하다.
 
 ## 일정
@@ -50,18 +50,20 @@
 
 완료 기준: 인증된 사용자가 체험 목록과 상세를 조회하고, 관리자가 장인을 승인할 수 있다.
 
-### 6/8 - 6/14: AI 프록시와 예약 API
+### 6/8 - 6/14: AI 추천 프록시와 예약 API
 
-- [ ] [영진] `AI 해설 + 출처 + 관련 체험` Spring 외부 API 구현 및 FastAPI 연결
-  - [ ] 앱용 AI 해설 API request/response 작성
+- [ ] [영진] `AI 추천/문화 설명 + 출처 + 관련 체험` Spring 외부 API 구현 및 FastAPI 연결
+  - [ ] AI 추천 탭의 취향 입력 요청 DTO 정의: 동행 관계, 인원, 관심사, 지역/시간 조건
+  - [ ] 카드뉴스 기반 문화 설명 요청과 취향 기반 추천 요청을 분리할지 결정
   - [ ] FastAPI explain 응답을 Spring DTO로 변환
   - [ ] 출처, 매칭 키워드, 추천 카테고리 필드 노출
+  - [ ] FastAPI 응답의 `matchingKeywords`, `recommendedCategories`를 체험 조회 조건으로 변환
   - [ ] AI 실패 시 fallback/error response 처리
 - [ ] [공통] [결정필요] 관련 체험 매칭 방식 결정
   - [ ] `Experience.category` 필드 추가 여부 결정
   - [ ] category 추가 시 migration, enum/string, 관리자 입력 방식 결정
   - [ ] category 미추가 시 tag/join table/search keyword 기반 매칭 방식 결정
-  - [ ] 결정 결과를 FastAPI recommended_categories 응답과 맞춤
+  - [ ] 결정 결과를 FastAPI `recommendedCategories` 응답과 맞춤
 - [ ] [지현] 예약 생성, 목록, 장인 승인/거절 API와 동시 재고 검증 구현
   - [ ] 예약 생성 시 일정/정원 검증
   - [ ] 장인 승인/거절 상태 전이 검증
@@ -69,13 +71,13 @@
 - [ ] [지현] 카드뉴스 조회/관리 API와 관련 체험 연결 구현
   - [ ] 카드뉴스 목록/상세 API
   - [ ] 관리자 카드뉴스 생성/수정/삭제 API
-  - [ ] 카드뉴스에서 AI 해설/관련 체험으로 이동할 식별자 제공
+  - [ ] 카드뉴스에서 문화 설명/관련 체험으로 이동할 식별자 제공
 - [ ] [공통] 프론트 연동용 API 예시 응답과 에러 사례 제공
-  - [ ] AI 해설 성공/실패 예시
+  - [ ] AI 추천/문화 설명 성공/실패 예시
   - [ ] 예약 성공/거절/정원 부족 예시
   - [ ] 카드뉴스/체험 상세 예시
 
-완료 기준: 앱 API를 통해 카드뉴스/질문에서 실제 AI 해설과 예약 요청으로 이어진다.
+완료 기준: 앱 API를 통해 AI 추천 탭 또는 카드뉴스에서 추천/문화 설명과 예약 요청으로 이어진다.
 
 ### 6/15 - 6/21: 결제, QR, 후기와 알림
 
@@ -108,7 +110,7 @@
   - [ ] 배포 환경변수 목록 정리
   - [ ] Flyway migration 검증
   - [ ] Spring/FastAPI health check 연결 확인
-- [ ] [공통] 로그인 -> AI 해설 -> 체험 -> 예약 -> 승인 -> 결제 -> QR E2E 검증
+- [ ] [공통] AI 추천 탭 -> 체험 -> 예약 -> 승인 -> 결제 -> QR E2E 검증
   - [ ] 사용자 앱 시나리오 3회 반복
   - [ ] 장인 승인/거절 시나리오 포함
   - [ ] 관리자 카드뉴스 관리 시나리오 포함
