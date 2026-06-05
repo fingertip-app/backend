@@ -83,13 +83,48 @@ class FastApiClientTest {
     }
 
     @Test
-    void mapsProviderFailureToUnavailableError() {
-        server.expect(requestTo("http://fastapi.test/api/v1/ai/explain"))
+    void mapsServiceUnavailableToUnavailableErrorWithoutRetry() {
+        server.expect(once(), requestTo("http://fastapi.test/api/v1/ai/explain"))
+                .andRespond(withStatus(org.springframework.http.HttpStatus.SERVICE_UNAVAILABLE));
+
+        assertThatThrownBy(() -> client.explainCulture("질문", "ko"))
+                .isInstanceOfSatisfying(ExternalServiceException.class,
+                        error -> assertThat(error.getErrorCode()).isEqualTo("AI_UNAVAILABLE"));
+        server.verify();
+    }
+
+    @Test
+    void retriesBadGatewayOnceAndReturnsSuccessfulResponse() {
+        server.expect(once(), requestTo("http://fastapi.test/api/v1/ai/explain"))
+                .andRespond(withStatus(org.springframework.http.HttpStatus.BAD_GATEWAY));
+        server.expect(once(), requestTo("http://fastapi.test/api/v1/ai/explain"))
+                .andRespond(withSuccess("""
+                        {
+                          "answer": "재시도 후 성공",
+                          "sources": [],
+                          "matchingKeywords": [],
+                          "recommendedCategories": []
+                        }
+                        """, MediaType.APPLICATION_JSON));
+
+        FastApiExplainResponse response = client.explainCulture("질문", "ko");
+
+        assertThat(response.getAnswer()).isEqualTo("재시도 후 성공");
+        assertThat(response.getSources()).isEmpty();
+        server.verify();
+    }
+
+    @Test
+    void retriesBadGatewayOnceAndMapsFailureToUnavailableError() {
+        server.expect(once(), requestTo("http://fastapi.test/api/v1/ai/explain"))
+                .andRespond(withStatus(org.springframework.http.HttpStatus.BAD_GATEWAY));
+        server.expect(once(), requestTo("http://fastapi.test/api/v1/ai/explain"))
                 .andRespond(withStatus(org.springframework.http.HttpStatus.BAD_GATEWAY));
 
         assertThatThrownBy(() -> client.explainCulture("질문", "ko"))
                 .isInstanceOfSatisfying(ExternalServiceException.class,
                         error -> assertThat(error.getErrorCode()).isEqualTo("AI_UNAVAILABLE"));
+        server.verify();
     }
 
     @Test
