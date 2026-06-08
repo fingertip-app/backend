@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "experiences")
@@ -68,4 +69,10 @@ public class Experience extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @ElementCollection
+    @CollectionTable(name = "experience_tags", joinColumns = @JoinColumn(name = "experience_id"))
+    @Column(name = "tag")
+    @Builder.Default
+    private List<String> tags = new ArrayList<>();
 }

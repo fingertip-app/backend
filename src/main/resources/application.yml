@@ -41,11 +41,11 @@ fastapi:
 spring:
   config:
     activate:
-      on-profile: local
+      on-profile: prod
   datasource:
-    url: jdbc:postgresql://localhost:5432/janginharou
-    username: postgres
-    password: postgres
+    url: jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres
+    username: postgres.eozmdmuzlhyanrwhyaqd
+    password: fingertip987!
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
