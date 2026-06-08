@@ -1,6 +1,5 @@
 package com.janginharou.domain.notification.dto;
 
-import com.janginharou.domain.notification.entity.NotificationType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
@@ -21,11 +20,5 @@ public class NotificationRequest {
     private String title;
 
     @NotBlank
-    private String message;
-
-    @NotNull
-    private NotificationType type;
-
-    private Long relatedId;
-    private String relatedType;
+    private String body;
 }
