@@ -43,9 +43,9 @@ spring:
     activate:
       on-profile: prod
   datasource:
-    url: jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres
-    username: postgres.eozmdmuzlhyanrwhyaqd
-    password: fingertip987!
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -72,46 +72,6 @@ jwt:
 fastapi:
   base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
   internal-api-key: ${INTERNAL_API_KEY:local-internal-key}
-
-server:
-  port: 8080
-  servlet:
-    context-path: /api
-
----
-spring:
-  config:
-    activate:
-      on-profile: prod
-  datasource:
-    url: ${DB_URL}
-    username: ${DB_USER}
-    password: ${DB_PASSWORD}
-    driver-class-name: org.postgresql.Driver
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-  redis:
-    host: ${REDIS_HOST}
-    port: ${REDIS_PORT}
-    password: ${REDIS_PASSWORD}
-
-  aws:
-    s3:
-      bucket: ${AWS_S3_BUCKET}
-      region: ${AWS_REGION:ap-northeast-2}
-    credentials:
-      access-key: ${AWS_ACCESS_KEY_ID}
-      secret-key: ${AWS_SECRET_ACCESS_KEY}
-
-jwt:
-  secret: ${JWT_SECRET}
-  expiration: 86400000
-
-fastapi:
-  base-url: ${FASTAPI_BASE_URL}
-  internal-api-key: ${INTERNAL_API_KEY}
 
 server:
   port: 8080
