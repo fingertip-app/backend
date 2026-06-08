@@ -25,6 +25,7 @@ public class ReservationRequest {
     @Positive
     private Integer numberOfParticipants;
 
+    @NotNull
     private LocalDateTime reservedDateTime;
 
     private String requestMessage;
