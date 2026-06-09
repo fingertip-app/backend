@@ -1,5 +1,6 @@
 package com.janginharou.global.config;
 
+import com.janginharou.global.client.FastApiClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpHeaders;
@@ -26,5 +27,10 @@ public class RestClientConfig {
                 .defaultHeader("X-Internal-Api-Key", properties.getInternalApiKey())
                 .requestFactory(requestFactory)
                 .build();
+    }
+
+    @Bean
+    public FastApiClient.Sleeper sleeper() {
+        return Thread::sleep;
     }
 }
