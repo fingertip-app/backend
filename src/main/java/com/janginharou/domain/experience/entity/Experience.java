@@ -71,8 +71,12 @@ public class Experience extends BaseEntity {
     private Boolean isActive = true;
 
     @ElementCollection
-    @CollectionTable(name = "experience_tags", joinColumns = @JoinColumn(name = "experience_id"))
-    @Column(name = "tag")
+    @CollectionTable(
+            name = "experience_tags",
+            joinColumns = @JoinColumn(name = "experience_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"experience_id", "tag"})
+    )
+    @Column(name = "tag", nullable = false, length = 100)
     @Builder.Default
     private List<String> tags = new ArrayList<>();
 }

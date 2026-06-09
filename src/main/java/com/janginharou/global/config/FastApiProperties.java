@@ -15,4 +15,5 @@ public class FastApiProperties {
     private String internalApiKey;
     private int connectTimeoutMs = 1000;
     private int readTimeoutMs = 15000;
+    private int retryDelayMs = 500;
 }

@@ -35,6 +35,8 @@ logging:
     com.janginharou: DEBUG
 
 fastapi:
+  base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
+  internal-api-key: local-internal-key
   connect-timeout-ms: 1000
   read-timeout-ms: 15000
 ---

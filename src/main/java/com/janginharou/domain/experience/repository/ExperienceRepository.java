@@ -2,6 +2,8 @@ package com.janginharou.domain.experience.repository;
 
 import com.janginharou.domain.experience.entity.Experience;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
@@ -14,7 +16,33 @@ public interface ExperienceRepository extends JpaRepository<Experience, Long> {
 
     List<Experience> findByIsActiveTrue();
 
-    List<Experience> findByStartDateTimeGreaterThanAndIsActiveTrue(LocalDateTime dateTime);
+    @Query("""
+        SELECT DISTINCT e
+        FROM Experience e
+        JOIN ExperienceSchedule s ON s.experience = e
+        WHERE s.scheduledAt > :dateTime
+          AND s.isActive = true
+          AND e.isActive = true
+        """)
+    List<Experience> findByStartDateTimeGreaterThanAndIsActiveTrue(
+            @Param("dateTime") LocalDateTime dateTime
+    );
 
     List<Experience> findByArtisanIdAndIsActiveTrue(Long artisanId);
+
+    @Query("SELECT DISTINCT e FROM Experience e JOIN e.tags t WHERE t = :tag AND e.isActive = true")
+    List<Experience> findByTagsContaining(@Param("tag") String tag);
+
+    @Query("""
+        SELECT e FROM Experience e
+        WHERE e.isActive = true AND EXISTS (
+            SELECT 1 FROM e.tags t
+            WHERE t IN :tags
+        )
+        ORDER BY (
+            SELECT COUNT(*) FROM e.tags t
+            WHERE t IN :tags
+        ) DESC, e.id ASC
+        """)
+    List<Experience> findByTagsContainingAny(@Param("tags") List<String> tags);
 }

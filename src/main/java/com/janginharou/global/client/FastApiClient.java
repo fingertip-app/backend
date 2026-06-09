@@ -2,6 +2,7 @@ package com.janginharou.global.client;
 
 import com.janginharou.global.client.dto.FastApiExplainRequest;
 import com.janginharou.global.client.dto.FastApiExplainResponse;
+import com.janginharou.global.config.FastApiProperties;
 import com.janginharou.global.exception.ExternalServiceException;
 import com.janginharou.global.exception.InvalidRequestException;
 import lombok.RequiredArgsConstructor;
@@ -19,9 +20,15 @@ import java.net.http.HttpTimeoutException;
 public class FastApiClient {
 
     private static final int MAX_PROVIDER_RETRY_ATTEMPTS = 1;
-    private static final long PROVIDER_RETRY_DELAY_MS = 500L;
 
     private final RestClient fastApiRestClient;
+    private final FastApiProperties properties;
+    private final Sleeper sleeper;
+
+    @FunctionalInterface
+    public interface Sleeper {
+        void sleep(long ms) throws InterruptedException;
+    }
 
     public FastApiExplainResponse explainCulture(String query, String locale) {
         int attempt = 0;
@@ -47,6 +54,9 @@ public class FastApiClient {
                     .onStatus(status -> status.value() == 422, (request, response) -> {
                         throw new InvalidRequestException("AI query validation failed");
                     })
+                    .onStatus(status -> status.value() == 400, (request, response) -> {
+                        throw new InvalidRequestException("AI query validation failed");
+                    })
                     .onStatus(this::isConfigurationFailure, (request, response) -> {
                         throw new ExternalServiceException(
                                 "AI service authentication is not configured correctly",
@@ -56,13 +66,13 @@ public class FastApiClient {
                     .onStatus(this::isRetryableProviderFailure, (request, response) -> {
                         throw new RetryableProviderException();
                     })
-                    .onStatus(this::isProviderFailure, (request, response) -> {
-                        throw new ExternalServiceException("AI service is unavailable", "AI_UNAVAILABLE");
-                    })
                     .body(FastApiExplainResponse.class);
         } catch (ResourceAccessException e) {
             if (hasTimeoutCause(e)) {
                 throw new ExternalServiceException("AI response timed out", e, "AI_TIMEOUT");
+            }
+            if (isConnectionResetCause(e)) {
+                throw new RetryableProviderException();
             }
             throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
         } catch (RestClientException e) {
@@ -75,11 +85,7 @@ public class FastApiClient {
     }
 
     private boolean isRetryableProviderFailure(HttpStatusCode status) {
-        return status.value() == 502;
-    }
-
-    private boolean isProviderFailure(HttpStatusCode status) {
-        return status.value() == 503;
+        return status.value() == 502 || status.value() == 503;
     }
 
     private boolean hasTimeoutCause(Throwable error) {
@@ -93,9 +99,24 @@ public class FastApiClient {
         return false;
     }
 
+    private boolean isConnectionResetCause(Throwable error) {
+        Throwable cause = error;
+        while (cause != null) {
+            if (cause instanceof java.net.ConnectException) {
+                return true;
+            }
+            if (cause instanceof java.net.SocketException &&
+                "Connection reset".equalsIgnoreCase(cause.getMessage())) {
+                return true;
+            }
+            cause = cause.getCause();
+        }
+        return false;
+    }
+
     private void sleepBeforeRetry() {
         try {
-            Thread.sleep(PROVIDER_RETRY_DELAY_MS);
+            sleeper.sleep(properties.getRetryDelayMs());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new ExternalServiceException("AI provider retry interrupted", e, "AI_UNAVAILABLE");
