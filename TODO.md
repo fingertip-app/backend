@@ -29,13 +29,15 @@
 
 ### 6/1 - 6/7: FastAPI 연동 안정화와 테스트 기준
 
-- [ ] [영진] FastAPI 502/timeout 재시도 정책 구현
-  - [ ] 502, connection reset, read timeout별 retry 여부 구분
-  - [ ] 최대 재시도 횟수와 backoff 값 설정화
-  - [ ] retry 후 최종 실패 시 프론트로 내려갈 오류 포맷 고정
+- [x] [영진] FastAPI 502/timeout 재시도 정책 구현
+  - [x] 502/503와 connection reset은 1회 재시도, read timeout은 재시도 제외
+  - [x] 최대 재시도 1회와 backoff 기본값 500ms 설정화
+  - [x] 최종 실패를 `AI_UNAVAILABLE`(503), `AI_TIMEOUT`(504)로 매핑
+  - [x] sleeper 주입과 재시도/timeout/error mapping 테스트 작성
 - [ ] [영진] Controller/Service 단위 테스트 기준과 공통 fixture 정의
   - [ ] AI client mock fixture 작성
-  - [ ] timeout/fallback/error mapping 테스트 작성
+  - [x] FastAPI client와 문화 설명 timeout/error mapping 테스트 작성
+  - [ ] 추천 fallback 테스트 작성
   - [ ] 테스트 네이밍과 Given-When-Then 기준 정리
 - [ ] [지현] JWT 필터와 역할 기반 접근 제어 구현: user, artisan, admin
   - [ ] 사용자/장인/관리자 권한별 접근 가능 API 정리
@@ -55,15 +57,20 @@
 - [ ] [영진] `AI 추천/문화 설명 + 출처 + 관련 체험` Spring 외부 API 구현 및 FastAPI 연결
   - [x] AI 추천 탭의 취향 입력 요청 DTO 초안 정의: 동행 관계, 인원, 관심사, 지역/시간 조건 (`docs/ai-recommendation-request-dto.md`)
   - [x] 카드뉴스 기반 문화 설명 요청과 취향 기반 추천 요청 분리 결정
-  - [ ] FastAPI explain 응답을 Spring DTO로 변환
-  - [ ] 출처, 매칭 키워드, 추천 카테고리 필드 노출
-  - [ ] FastAPI 응답의 `matchingKeywords`, `recommendedCategories`를 체험 조회 조건으로 변환
-  - [ ] AI 실패 시 fallback/error response 처리
+  - [x] `POST /api/v1/ai/explain` Spring 외부 API와 요청 검증 구현
+  - [x] FastAPI explain 응답을 Spring DTO로 변환
+  - [x] 출처, 매칭 키워드, 추천 카테고리 필드 노출
+  - [x] FastAPI 응답의 `matchingKeywords`, `recommendedCategories`를 태그 조건으로 변환해 관련 체험 최대 5개 연결
+  - [x] 문화 설명 AI 실패를 `503/504` error response로 처리
+  - [x] 문화 설명 Service/Controller 테스트와 Swagger 성공/실패 응답 작성
+  - [ ] 취향 기반 AI 추천 API, 인기/기본 체험 fallback 구현
 - [ ] [공통] 관련 체험 매칭 방식 구현
   - [x] `Experience.category` 단일 필드가 아니라 태그 기반 매칭으로 결정
-  - [ ] DB 담당: Experience 태그 저장 방식, migration, seed/admin 입력 방식 결정
-  - [ ] 영진: tag 기반 매칭 쿼리 연결
-  - [ ] 결정 결과를 FastAPI `recommendedCategories` 응답과 맞춤
+  - [x] Experience 태그를 `experience_tags` 테이블로 저장하고 Flyway V2 migration/인덱스 추가
+  - [ ] 태그 seed/admin 입력 방식 결정
+  - [x] exact-match 단일/다중 태그 쿼리와 매칭 개수 정렬 구현
+  - [x] FastAPI `matchingKeywords`, `recommendedCategories` 응답과 연결
+  - [x] Repository 테스트 7개로 매칭/정렬/비활성/중복/제약 검증
 - [ ] [지현] 예약 생성, 목록, 장인 승인/거절 API와 동시 재고 검증 구현
   - [ ] 예약 생성 시 일정/정원 검증
   - [ ] 장인 승인/거절 상태 전이 검증

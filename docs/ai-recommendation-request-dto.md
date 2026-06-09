@@ -322,11 +322,12 @@ POST /api/v1/ai/explain
 - [ ] `AiRecommendationRequest` 작성
 - [ ] `AiRecommendationResponse` 작성
 - [ ] `RecommendedExperienceResponse` 작성
-- [ ] `AiExplainRequest` / `AiExplainResponse` 작성
+- [x] `ExplainRequest` / `ExplainResponse` 작성
+- [x] `POST /api/v1/ai/explain` Controller/Service 작성
 - [ ] `AiRecommendationController` 작성
 - [ ] `AiRecommendationService`에서 FastAPI query 조립
-- [ ] FastAPI 응답을 Spring 응답으로 변환
-- [ ] 태그 DB 구현 후 체험 매칭 쿼리 연결
+- [x] FastAPI explain 응답을 Spring 응답으로 변환
+- [x] 태그 DB 구현 후 체험 매칭 쿼리 연결
 - [ ] AI 실패 시 인기/기본 체험 fallback 연결
 
 ### Frontend
@@ -338,6 +339,6 @@ POST /api/v1/ai/explain
 
 ### DB
 
-- [ ] `Experience` 태그 저장 방식 확정
+- [x] `Experience` 태그 저장 방식 확정 (`experience_tags`)
 - [ ] 태그 seed 또는 관리자 입력 방식 확정
-- [ ] 태그 검색/매칭 인덱스 검토
+- [x] 태그 검색/매칭 인덱스 추가
