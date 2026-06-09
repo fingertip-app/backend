@@ -53,16 +53,16 @@
 ### 6/8 - 6/14: AI 추천 프록시와 예약 API
 
 - [ ] [영진] `AI 추천/문화 설명 + 출처 + 관련 체험` Spring 외부 API 구현 및 FastAPI 연결
-  - [ ] AI 추천 탭의 취향 입력 요청 DTO 정의: 동행 관계, 인원, 관심사, 지역/시간 조건
-  - [ ] 카드뉴스 기반 문화 설명 요청과 취향 기반 추천 요청을 분리할지 결정
+  - [x] AI 추천 탭의 취향 입력 요청 DTO 초안 정의: 동행 관계, 인원, 관심사, 지역/시간 조건 (`docs/ai-recommendation-request-dto.md`)
+  - [x] 카드뉴스 기반 문화 설명 요청과 취향 기반 추천 요청 분리 결정
   - [ ] FastAPI explain 응답을 Spring DTO로 변환
   - [ ] 출처, 매칭 키워드, 추천 카테고리 필드 노출
   - [ ] FastAPI 응답의 `matchingKeywords`, `recommendedCategories`를 체험 조회 조건으로 변환
   - [ ] AI 실패 시 fallback/error response 처리
-- [ ] [공통] [결정필요] 관련 체험 매칭 방식 결정
-  - [ ] `Experience.category` 필드 추가 여부 결정
-  - [ ] category 추가 시 migration, enum/string, 관리자 입력 방식 결정
-  - [ ] category 미추가 시 tag/join table/search keyword 기반 매칭 방식 결정
+- [ ] [공통] 관련 체험 매칭 방식 구현
+  - [x] `Experience.category` 단일 필드가 아니라 태그 기반 매칭으로 결정
+  - [ ] DB 담당: Experience 태그 저장 방식, migration, seed/admin 입력 방식 결정
+  - [ ] 영진: tag 기반 매칭 쿼리 연결
   - [ ] 결정 결과를 FastAPI `recommendedCategories` 응답과 맞춤
 - [ ] [지현] 예약 생성, 목록, 장인 승인/거절 API와 동시 재고 검증 구현
   - [ ] 예약 생성 시 일정/정원 검증
