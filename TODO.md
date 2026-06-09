@@ -18,7 +18,7 @@
 
 - [ ] [공통/영진] 외부 API 경로, 오류 포맷, 인증 방식, Spring-FastAPI 내부 요청/응답 계약 확정
 - [ ] [공통/지현] 예약·결제 상태값과 전이 권한 표 확정
-- [ ] [지현] Flyway 기준 Spring 소유 테이블 확정: users, artisans, experiences, schedules, reservations, payments, reviews, card_news, notifications
+- [x] [서영] Flyway 기준 Spring 소유 테이블 확정 및 Supabase 직접 적용: users, artisans, experiences, experience_tags, schedules, reservations, reviews, card_news, notifications
 - [ ] [지현] 로컬 Docker/PostgreSQL/Redis 실행과 GitHub Actions 빌드·테스트 기본 작업 구성
 - [x] [영진] FastAPI Client skeleton 완료
   - [x] commit `4560c65` 기준 client 구조 추가
