@@ -19,6 +19,7 @@ public class ReservationResponse {
     private Long id;
     private Long userId;
     private Long experienceId;
+    private Long scheduleId;
     private Integer numberOfParticipants;
     private BigDecimal totalPrice;
     private ReservationStatus status;
@@ -37,6 +38,7 @@ public class ReservationResponse {
                 .id(reservation.getId())
                 .userId(reservation.getUser().getId())
                 .experienceId(reservation.getExperience().getId())
+                .scheduleId(reservation.getSchedule().getId())
                 .numberOfParticipants(reservation.getNumberOfParticipants())
                 .totalPrice(reservation.getTotalPrice())
                 .status(reservation.getStatus())

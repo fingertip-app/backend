@@ -28,7 +28,7 @@ public class CardNewsService {
 
     @Transactional(readOnly = true)
     public List<CardNews> getCardNewsByContentType(String contentType) {
-        return cardNewsRepository.findByKContentType(contentType);
+        return cardNewsRepository.findByContentType(contentType);
     }
 
     @Transactional(readOnly = true)

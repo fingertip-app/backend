@@ -114,7 +114,7 @@ docker compose ps
 ### 환경 변수 설정 (로컬)
 
 `application-local.yml`에 다음 환경이 자동 설정됩니다:
-- 데이터베이스: `localhost:5432/janginharou` (계정: postgres/postgres)
+- 데이터베이스: `localhost:5433/janginharou` (계정: postgres/postgres, Docker Compose 기준)
 - Redis: `localhost:6379`
 - JWT Secret: 256비트 이상의 보안 키
 

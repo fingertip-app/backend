@@ -1,6 +1,7 @@
 package com.janginharou.global.exception;
 
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.ForbiddenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -19,6 +20,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(UnauthorizedException.class)
     public ResponseEntity<ApiResponse<Void>> handleUnauthorized(UnauthorizedException e) {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbidden(ForbiddenException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
                 .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
     }
 

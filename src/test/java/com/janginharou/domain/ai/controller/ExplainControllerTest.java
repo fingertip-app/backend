@@ -2,8 +2,11 @@ package com.janginharou.domain.ai.controller;
 
 import com.janginharou.domain.ai.dto.ExplainResponse;
 import com.janginharou.domain.ai.service.ExplainService;
+import com.janginharou.domain.user.repository.UserRepository;
+import com.janginharou.global.config.JwtTokenProvider;
 import com.janginharou.global.config.SecurityConfig;
 import com.janginharou.global.exception.ExternalServiceException;
+import com.janginharou.global.security.SecurityErrorHandlers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -31,6 +34,15 @@ class ExplainControllerTest {
 
     @MockBean
     private ExplainService explainService;
+
+    @MockBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockBean
+    private UserRepository userRepository;
+
+    @MockBean
+    private SecurityErrorHandlers securityErrorHandlers;
 
     @Test
     void returnsExplainResponse() throws Exception {

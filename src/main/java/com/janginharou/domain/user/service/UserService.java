@@ -39,6 +39,13 @@ public class UserService {
     }
 
     @Transactional
+    public User updateProfile(Long userId, String nickname, String profileImageUrl, java.util.List<String> preferredCategories) {
+        User user = getUserById(userId);
+        user.updateProfile(nickname, profileImageUrl, preferredCategories);
+        return user;
+    }
+
+    @Transactional
     public void deleteUser(Long userId) {
         // TODO: 회원 탈퇴 처리 (soft delete 또는 hard delete)
         userRepository.deleteById(userId);

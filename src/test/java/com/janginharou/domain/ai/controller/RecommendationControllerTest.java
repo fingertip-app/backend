@@ -3,8 +3,11 @@ package com.janginharou.domain.ai.controller;
 import com.janginharou.domain.ai.dto.AiRecommendationResponse;
 import com.janginharou.domain.ai.dto.RecommendedExperienceResponse;
 import com.janginharou.domain.ai.service.RecommendationService;
+import com.janginharou.domain.user.repository.UserRepository;
+import com.janginharou.global.config.JwtTokenProvider;
 import com.janginharou.global.config.SecurityConfig;
 import com.janginharou.global.exception.ExternalServiceException;
+import com.janginharou.global.security.SecurityErrorHandlers;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -33,6 +36,15 @@ class RecommendationControllerTest {
 
     @MockBean
     private RecommendationService recommendationService;
+
+    @MockBean
+    private JwtTokenProvider jwtTokenProvider;
+
+    @MockBean
+    private UserRepository userRepository;
+
+    @MockBean
+    private SecurityErrorHandlers securityErrorHandlers;
 
     @Test
     void shouldReturnRecommendationsWithStatus200() throws Exception {

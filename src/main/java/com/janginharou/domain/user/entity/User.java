@@ -27,8 +27,16 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 50)
     private String provider;  // kakao, google, apple
 
+    @Column(name = "provider_id", unique = true, length = 255)
+    private String providerId;
+
     @Column(nullable = false, length = 100)
     private String nickname;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private UserRole role = UserRole.USER;
 
     @Column(columnDefinition = "TEXT")
     private String profileImageUrl;
@@ -46,4 +54,31 @@ public class User extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    public static User supabaseUser(String supabaseId, String email, String nickname) {
+        return User.builder()
+                .email(email)
+                .provider("supabase")
+                .providerId(supabaseId)
+                .nickname(nickname)
+                .role(UserRole.USER)
+                .isActive(true)
+                .build();
+    }
+
+    public void updateProfile(String nickname, String profileImageUrl, List<String> preferredCategories) {
+        if (nickname != null) {
+            this.nickname = nickname;
+        }
+        if (profileImageUrl != null) {
+            this.profileImageUrl = profileImageUrl;
+        }
+        if (preferredCategories != null) {
+            this.preferredCategories = preferredCategories;
+        }
+    }
+
+    public void changeRole(UserRole role) {
+        this.role = role;
+    }
 }
