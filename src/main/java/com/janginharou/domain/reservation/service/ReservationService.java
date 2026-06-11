@@ -1,7 +1,9 @@
 package com.janginharou.domain.reservation.service;
 
 import com.janginharou.domain.experience.entity.Experience;
+import com.janginharou.domain.experience.entity.ExperienceSchedule;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
+import com.janginharou.domain.experience.repository.ExperienceScheduleRepository;
 import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
@@ -28,6 +30,7 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final ExperienceRepository experienceRepository;
+    private final ExperienceScheduleRepository experienceScheduleRepository;
 
     private static final Set<ReservationStatus> ACTIVE_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -63,20 +66,23 @@ public class ReservationService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         Experience experience = experienceRepository.findById(request.getExperienceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Experience", "id", request.getExperienceId()));
+        ExperienceSchedule schedule = experienceScheduleRepository.findById(request.getScheduleId())
+                .orElseThrow(() -> new ResourceNotFoundException("ExperienceSchedule", "id", request.getScheduleId()));
 
-        validateReservableExperience(experience, request.getReservedDateTime());
-        validateDuplicateReservation(userId, experience.getId());
-        validateCapacity(experience, request.getNumberOfParticipants());
+        validateReservableExperience(experience, schedule);
+        validateDuplicateReservation(userId, schedule.getId());
+        validateCapacity(schedule, request.getNumberOfParticipants());
 
         BigDecimal totalPrice = experience.getPrice().multiply(BigDecimal.valueOf(request.getNumberOfParticipants()));
 
         Reservation reservation = Reservation.builder()
                 .user(user)
                 .experience(experience)
+                .schedule(schedule)
                 .numberOfParticipants(request.getNumberOfParticipants())
                 .totalPrice(totalPrice)
                 .status(ReservationStatus.PENDING)
-                .reservedDateTime(request.getReservedDateTime())
+                .reservedDateTime(schedule.getScheduledAt())
                 .requestMessage(request.getRequestMessage())
                 .isNotificationSent(false)
                 .build();
@@ -137,31 +143,37 @@ public class ReservationService {
         return reservationRepository.findByStatus(ReservationStatus.CONFIRMED);
     }
 
-    private void validateReservableExperience(Experience experience, LocalDateTime reservedDateTime) {
+    private void validateReservableExperience(Experience experience, ExperienceSchedule schedule) {
         if (!Boolean.TRUE.equals(experience.getIsActive())) {
             throw new InvalidRequestException("Experience is not active");
         }
-        if (reservedDateTime.isBefore(LocalDateTime.now())) {
+        if (!schedule.getExperience().getId().equals(experience.getId())) {
+            throw new InvalidRequestException("Schedule does not belong to the experience");
+        }
+        if (!Boolean.TRUE.equals(schedule.getIsActive())) {
+            throw new InvalidRequestException("Schedule is closed");
+        }
+        if (schedule.getScheduledAt().isBefore(LocalDateTime.now())) {
             throw new InvalidRequestException("Reserved date time has already passed");
         }
     }
 
-    private void validateDuplicateReservation(Long userId, Long experienceId) {
-        if (reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
+    private void validateDuplicateReservation(Long userId, Long scheduleId) {
+        if (reservationRepository.existsByUserIdAndScheduleIdAndStatusIn(
                 userId,
-                experienceId,
+                scheduleId,
                 List.copyOf(ACTIVE_STATUSES)
         )) {
             throw new InvalidRequestException("Duplicate active reservation exists");
         }
     }
 
-    private void validateCapacity(Experience experience, Integer requestedParticipants) {
-        Integer currentParticipants = reservationRepository.sumParticipantsByExperienceIdAndStatusIn(
-                experience.getId(),
+    private void validateCapacity(ExperienceSchedule schedule, Integer requestedParticipants) {
+        Integer currentParticipants = reservationRepository.sumParticipantsByScheduleIdAndStatusIn(
+                schedule.getId(),
                 List.copyOf(ACTIVE_STATUSES)
         );
-        if (currentParticipants + requestedParticipants > experience.getMaxParticipants()) {
+        if (currentParticipants + requestedParticipants > schedule.getAvailableSlots()) {
             throw new InvalidRequestException("Booking slot is unavailable");
         }
     }

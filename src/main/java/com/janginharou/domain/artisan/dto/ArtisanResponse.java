@@ -1,6 +1,7 @@
 package com.janginharou.domain.artisan.dto;
 
 import com.janginharou.domain.artisan.entity.Artisan;
+import com.janginharou.domain.artisan.entity.ArtisanVerificationStatus;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -22,6 +23,8 @@ public class ArtisanResponse {
     private String bio;
     private String profileImageUrl;
     private String introVideoUrl;
+    private ArtisanVerificationStatus certificationStatus;
+    private LocalDateTime verifiedAt;
     private Boolean isVerified;
     private Boolean isActive;
     private LocalDateTime createdAt;
@@ -37,6 +40,8 @@ public class ArtisanResponse {
                 .bio(artisan.getBio())
                 .profileImageUrl(artisan.getProfileImageUrl())
                 .introVideoUrl(artisan.getIntroVideoUrl())
+                .certificationStatus(artisan.getCertificationStatus())
+                .verifiedAt(artisan.getVerifiedAt())
                 .isVerified(artisan.getIsVerified())
                 .isActive(artisan.getIsActive())
                 .createdAt(artisan.getCreatedAt())

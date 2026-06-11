@@ -4,11 +4,13 @@ import com.janginharou.domain.user.dto.UserRequest;
 import com.janginharou.domain.user.dto.UserResponse;
 import com.janginharou.domain.user.service.UserService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -18,6 +20,30 @@ import org.springframework.web.bind.annotation.*;
 public class UserController {
 
     private final UserService userService;
+
+    @GetMapping("/me")
+    @Operation(summary = "내 프로필 조회", description = "인증된 사용자 프로필 조회")
+    public ResponseEntity<ApiResponse<UserResponse>> getMe(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        UserResponse response = UserResponse.from(userService.getUserById(currentUser.id()));
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PatchMapping("/me")
+    @Operation(summary = "내 프로필 수정", description = "인증된 사용자 프로필 수정")
+    public ResponseEntity<ApiResponse<UserResponse>> updateMe(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestBody UserRequest request
+    ) {
+        UserResponse response = UserResponse.from(userService.updateProfile(
+                currentUser.id(),
+                request.getNickname(),
+                request.getProfileImageUrl(),
+                request.getPreferredCategories()
+        ));
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
 
     @GetMapping("/{userId}")
     @Operation(summary = "사용자 조회", description = "사용자 ID로 사용자 정보 조회")

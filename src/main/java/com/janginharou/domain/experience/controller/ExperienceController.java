@@ -21,10 +21,16 @@ public class ExperienceController {
 
     private final ExperienceService experienceService;
 
+    @GetMapping
+    @Operation(summary = "체험 프로그램 목록", description = "인증된 사용자의 활성 체험 프로그램 목록 조회")
+    public ResponseEntity<ApiResponse<List<ExperienceResponse>>> getExperiences() {
+        return ResponseEntity.ok(ApiResponse.ok(experienceService.getActiveExperienceResponses()));
+    }
+
     @GetMapping("/{experienceId}")
     @Operation(summary = "체험 프로그램 조회", description = "체험 프로그램 ID로 상세 정보 조회")
     public ResponseEntity<ApiResponse<ExperienceResponse>> getExperience(@PathVariable Long experienceId) {
-        ExperienceResponse response = ExperienceResponse.from(experienceService.getExperienceById(experienceId));
+        ExperienceResponse response = experienceService.getExperienceDetail(experienceId);
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -51,11 +57,7 @@ public class ExperienceController {
     @GetMapping("/upcoming")
     @Operation(summary = "예정된 체험 프로그램 목록", description = "현재 이후의 예정된 체험 프로그램 조회")
     public ResponseEntity<ApiResponse<List<ExperienceResponse>>> getUpcomingExperiences() {
-        List<ExperienceResponse> responses = experienceService.getUpcomingExperiences()
-                .stream()
-                .map(ExperienceResponse::from)
-                .toList();
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(experienceService.getUpcomingExperiences()));
     }
 
     @PostMapping

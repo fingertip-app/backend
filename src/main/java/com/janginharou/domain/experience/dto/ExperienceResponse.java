@@ -31,6 +31,7 @@ public class ExperienceResponse {
     private BigDecimal locationLat;
     private BigDecimal locationLng;
     private Boolean isActive;
+    private List<ScheduleResponse> schedules;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 
@@ -54,5 +55,18 @@ public class ExperienceResponse {
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();
+    }
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ScheduleResponse {
+        private Long id;
+        private LocalDateTime scheduledAt;
+        private Integer availableSlots;
+        private Integer bookedSlots;
+        private Integer remainingSlots;
+        private Boolean isActive;
     }
 }
