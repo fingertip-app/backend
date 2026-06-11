@@ -19,7 +19,7 @@
 - [ ] [공통/영진] 외부 API 경로, 오류 포맷, 인증 방식, Spring-FastAPI 내부 요청/응답 계약 확정
 - [ ] [공통/지현] 예약·결제 상태값과 전이 권한 표 확정
 - [x] [서영] Flyway 기준 Spring 소유 테이블 확정 및 Supabase 직접 적용: users, artisans, experiences, experience_tags, schedules, reservations, reviews, card_news, notifications
-- [ ] [지현] 로컬 Docker/PostgreSQL/Redis 실행과 GitHub Actions 빌드·테스트 기본 작업 구성
+- [x] [지현] 로컬 Docker/PostgreSQL/Redis 실행과 GitHub Actions 빌드·테스트 기본 작업 구성
 - [x] [영진] FastAPI Client skeleton 완료
   - [x] commit `4560c65` 기준 client 구조 추가
   - [x] 설정값/timeout/error mapping 기본 형태 작성
@@ -37,12 +37,12 @@
   - [ ] AI client mock fixture 작성
   - [ ] timeout/fallback/error mapping 테스트 작성
   - [ ] 테스트 네이밍과 Given-When-Then 기준 정리
-- [ ] [지현] JWT 필터와 역할 기반 접근 제어 구현: user, artisan, admin
-  - [ ] 사용자/장인/관리자 권한별 접근 가능 API 정리
+- [x] [지현] JWT 필터와 역할 기반 접근 제어 구현: user, artisan, admin
+  - [x] 사용자/장인/관리자 권한별 접근 가능 API 정리
   - [ ] 인증 실패와 권한 실패 응답 코드 분리
 - [ ] [지현] 사용자 로그인/프로필, 장인 신청/승인, 체험 목록/상세 API 구현
-  - [ ] 로그인/프로필 기본 API
-  - [ ] 장인 신청/관리자 승인 API
+  - [x] 로그인/프로필 기본 API
+  - [x] 장인 신청/관리자 승인 API
   - [ ] 체험 목록/상세 조회 API
 - [ ] [지현] 체험 일정 및 예약 가능 인원 모델/마이그레이션 구현
   - [ ] schedule/time slot 모델 확정
@@ -66,7 +66,7 @@
   - [ ] 결정 결과를 FastAPI `recommendedCategories` 응답과 맞춤
 - [ ] [지현] 예약 생성, 목록, 장인 승인/거절 API와 동시 재고 검증 구현
   - [ ] 예약 생성 시 일정/정원 검증
-  - [ ] 장인 승인/거절 상태 전이 검증
+  - [x] 장인 승인/거절 상태 전이 검증
   - [ ] 중복 예약과 동시 요청 테스트 작성
 - [ ] [지현] 카드뉴스 조회/관리 API와 관련 체험 연결 구현
   - [ ] 카드뉴스 목록/상세 API
