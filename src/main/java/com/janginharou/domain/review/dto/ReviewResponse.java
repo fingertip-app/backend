@@ -23,6 +23,8 @@ public class ReviewResponse {
     private Integer rating;
     private String content;
     private String newLearnings;
+    private String summary;
+    private String contentEn;
     private List<String> imageUrls;
     private BigDecimal sentimentScore;
     private List<String> keywords;
@@ -37,6 +39,8 @@ public class ReviewResponse {
                 .rating(review.getRating())
                 .content(review.getContent())
                 .newLearnings(review.getNewLearnings())
+                .summary(review.getSummary())
+                .contentEn(review.getContentEn())
                 .imageUrls(review.getImageUrls())
                 .sentimentScore(review.getSentimentScore())
                 .keywords(review.getKeywords())

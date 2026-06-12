@@ -9,6 +9,8 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,10 +52,13 @@ public class ReviewController {
 
     @PostMapping
     @Operation(summary = "후기 작성", description = "새로운 후기 작성 (예약 완료된 Reservation 기준)")
-    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(@RequestBody ReviewRequest request) {
-        // TODO: 현재 로그인 사용자 ID 추출 후 후기 생성
+    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
+            @RequestBody ReviewRequest request,
+            @AuthenticationPrincipal UserDetails userDetails) {
+        Long userId = Long.parseLong(userDetails.getUsername());
+        ReviewResponse response = ReviewResponse.from(reviewService.createReview(userId, request));
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "Review created successfully"));
+                .body(ApiResponse.ok(response, "Review created successfully"));
     }
 
     @PutMapping("/{reviewId}")

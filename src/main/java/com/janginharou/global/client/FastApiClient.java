@@ -2,6 +2,8 @@ package com.janginharou.global.client;
 
 import com.janginharou.global.client.dto.FastApiExplainRequest;
 import com.janginharou.global.client.dto.FastApiExplainResponse;
+import com.janginharou.global.client.dto.FastApiSummarizeRequest;
+import com.janginharou.global.client.dto.FastApiSummarizeResponse;
 import com.janginharou.global.config.FastApiProperties;
 import com.janginharou.global.exception.ExternalServiceException;
 import com.janginharou.global.exception.InvalidRequestException;
@@ -45,6 +47,21 @@ public class FastApiClient {
         }
     }
 
+    public FastApiSummarizeResponse summarizeReview(String content, String locale) {
+        int attempt = 0;
+        while (true) {
+            try {
+                return requestSummarizeReview(content, locale);
+            } catch (RetryableProviderException e) {
+                if (attempt >= MAX_PROVIDER_RETRY_ATTEMPTS) {
+                    throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
+                }
+                attempt++;
+                sleepBeforeRetry();
+            }
+        }
+    }
+
     private FastApiExplainResponse requestExplainCulture(String query, String locale) {
         try {
             return fastApiRestClient.post()
@@ -67,6 +84,41 @@ public class FastApiClient {
                         throw new RetryableProviderException();
                     })
                     .body(FastApiExplainResponse.class);
+        } catch (ResourceAccessException e) {
+            if (hasTimeoutCause(e)) {
+                throw new ExternalServiceException("AI response timed out", e, "AI_TIMEOUT");
+            }
+            if (isConnectionResetCause(e)) {
+                throw new RetryableProviderException();
+            }
+            throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
+        } catch (RestClientException e) {
+            throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
+        }
+    }
+
+    private FastApiSummarizeResponse requestSummarizeReview(String content, String locale) {
+        try {
+            return fastApiRestClient.post()
+                    .uri("/api/v1/ai/review-summary")
+                    .body(new FastApiSummarizeRequest(content, locale))
+                    .retrieve()
+                    .onStatus(status -> status.value() == 422, (request, response) -> {
+                        throw new InvalidRequestException("AI query validation failed");
+                    })
+                    .onStatus(status -> status.value() == 400, (request, response) -> {
+                        throw new InvalidRequestException("AI query validation failed");
+                    })
+                    .onStatus(this::isConfigurationFailure, (request, response) -> {
+                        throw new ExternalServiceException(
+                                "AI service authentication is not configured correctly",
+                                "AI_CONFIG_ERROR"
+                        );
+                    })
+                    .onStatus(this::isRetryableProviderFailure, (request, response) -> {
+                        throw new RetryableProviderException();
+                    })
+                    .body(FastApiSummarizeResponse.class);
         } catch (ResourceAccessException e) {
             if (hasTimeoutCause(e)) {
                 throw new ExternalServiceException("AI response timed out", e, "AI_TIMEOUT");
