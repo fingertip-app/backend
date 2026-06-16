@@ -55,7 +55,6 @@ public class SecurityConfig {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/health", "/public/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/ai/recommendations").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/artisans/*/approve", "/artisans/*/reject").hasRole("ADMIN")
                         .requestMatchers("/artisans/apply", "/artisans/me").hasAnyRole("USER", "ARTISAN", "ADMIN")
@@ -72,12 +71,7 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:8081",
-                "http://localhost:19006"
-        ));
+        configuration.setAllowedOrigins(Arrays.asList("http://localhost:3000", "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
         configuration.setAllowCredentials(true);
