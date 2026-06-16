@@ -1,5 +1,6 @@
 package com.janginharou.domain.review.service;
 
+import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.review.dto.ReviewRequest;
@@ -8,6 +9,8 @@ import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.client.FastApiClient;
 import com.janginharou.global.client.dto.FastApiSummarizeResponse;
+import com.janginharou.global.exception.ExternalServiceException;
+import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -20,6 +23,10 @@ import java.util.List;
 @RequiredArgsConstructor
 @Slf4j
 public class ReviewService {
+
+    private static final List<ReservationStatus> REVIEWABLE_RESERVATION_STATUSES = List.of(
+            ReservationStatus.COMPLETED
+    );
 
     private final ReviewRepository reviewRepository;
     private final FastApiClient fastApiClient;
@@ -45,11 +52,18 @@ public class ReviewService {
 
     @Transactional
     public Review createReview(Long userId, ReviewRequest request) {
-        // TODO: 후기 생성 처리 (예약 완료된 Reservation에 대해서만 작성 가능)
         var user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         var experience = experienceRepository.findById(request.getExperienceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Experience", "id", request.getExperienceId()));
+
+        if (!reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
+                userId,
+                request.getExperienceId(),
+                REVIEWABLE_RESERVATION_STATUSES
+        )) {
+            throw new InvalidRequestException("Completed reservation is required to create a review");
+        }
 
         Review review = Review.builder()
                 .user(user)

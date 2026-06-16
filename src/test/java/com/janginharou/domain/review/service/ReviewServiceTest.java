@@ -2,6 +2,7 @@ package com.janginharou.domain.review.service;
 
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
+import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.review.dto.ReviewRequest;
 import com.janginharou.domain.review.entity.Review;
@@ -11,6 +12,7 @@ import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.client.FastApiClient;
 import com.janginharou.global.client.dto.FastApiSummarizeResponse;
 import com.janginharou.global.exception.ExternalServiceException;
+import com.janginharou.global.exception.InvalidRequestException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -22,8 +24,10 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -70,14 +74,6 @@ class ReviewServiceTest {
                 .newKnowledge("많은 것을 배웠습니다")
                 .build();
 
-        Review unsavedReview = Review.builder()
-                .user(user)
-                .experience(experience)
-                .rating(request.getRating())
-                .content(request.getContent())
-                .newLearnings(request.getNewKnowledge())
-                .build();
-
         Review savedReview = Review.builder()
                 .id(1L)
                 .user(user)
@@ -95,6 +91,11 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
+        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
+                eq(1L),
+                eq(100L),
+                eq(List.of(ReservationStatus.COMPLETED))
+        )).thenReturn(true);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
         when(fastApiClient.summarizeReview("정말 좋은 체험이었습니다!", "ko"))
                 .thenReturn(aiResponse);
@@ -133,6 +134,8 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
+        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(any(), any(), any()))
+                .thenReturn(true);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
         when(fastApiClient.summarizeReview(anyString(), anyString()))
                 .thenThrow(new ExternalServiceException("AI service unavailable", "AI_UNAVAILABLE"));
@@ -168,6 +171,8 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
+        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(any(), any(), any()))
+                .thenReturn(true);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
 
         Review result = reviewService.createReview(1L, request);
@@ -204,6 +209,8 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
+        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(any(), any(), any()))
+                .thenReturn(true);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
         when(fastApiClient.summarizeReview(anyString(), anyString()))
                 .thenReturn(aiResponse);
@@ -215,5 +222,31 @@ class ReviewServiceTest {
         assertThat(result.getSentimentScore()).isEqualTo(BigDecimal.valueOf(0.92));
         assertThat(result.getKeywords()).containsExactly("전통", "문화", "배움");
         verify(reviewRepository).save(any(Review.class));
+    }
+
+    @Test
+    void rejectsReviewWhenReviewableReservationDoesNotExist() {
+        User user = User.builder().id(1L).build();
+        Experience experience = Experience.builder().id(100L).build();
+        ReviewRequest request = ReviewRequest.builder()
+                .experienceId(100L)
+                .rating(5)
+                .content("예약 없이 작성하려는 후기")
+                .build();
+
+        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
+        when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
+        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
+                eq(1L),
+                eq(100L),
+                eq(List.of(ReservationStatus.COMPLETED))
+        )).thenReturn(false);
+
+        assertThatThrownBy(() -> reviewService.createReview(1L, request))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Completed reservation is required to create a review");
+
+        verify(reviewRepository, never()).save(any(Review.class));
+        verify(fastApiClient, never()).summarizeReview(anyString(), anyString());
     }
 }
