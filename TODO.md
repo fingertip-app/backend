@@ -18,6 +18,11 @@
 
 - [ ] [공통/영진] 외부 API 경로, 오류 포맷, 인증 방식, Spring-FastAPI 내부 요청/응답 계약 확정
 - [ ] [공통/지현] 예약·결제 상태값과 전이 권한 표 확정
+- [ ] [공통] 장인 파트너 신청 API 계약 확장
+  - [x] MVP 임시 계약: `POST /artisans/apply`는 `name`, 단일 `heritageCategory`, 통합 `bio` 중심으로 수신
+  - [ ] `ArtisanRequest/Response`에 다중 카테고리, 활동 지역, 주요 경력, SNS, 포트폴리오 이미지, 자격 증빙 파일 필드 추가 여부 확정
+  - [ ] Flyway migration과 `Artisan` 저장 모델 확장: 배열/별도 테이블/파일 URL 저장 방식 결정
+  - [ ] 관리자 장인 심사 목록/상세에서 확장 신청 정보를 확인할 응답 계약 확정
 - [x] [서영] Flyway 기준 Spring 소유 테이블 확정 및 Supabase 직접 적용: users, artisans, experiences, experience_tags, schedules, reservations, reviews, card_news, notifications
 - [x] [지현] 로컬 Docker/PostgreSQL/Redis 실행과 GitHub Actions 빌드·테스트 기본 작업 구성
 - [x] [영진] FastAPI Client skeleton 완료

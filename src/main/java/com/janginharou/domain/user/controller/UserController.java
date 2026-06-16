@@ -21,6 +21,20 @@ public class UserController {
 
     private final UserService userService;
 
+    @GetMapping("/check/email")
+    @Operation(summary = "이메일 중복 확인", description = "이메일 사용 가능 여부 확인")
+    public ResponseEntity<ApiResponse<Boolean>> checkEmail(@RequestParam String email) {
+        boolean available = !userService.existsByEmail(email);
+        return ResponseEntity.ok(ApiResponse.ok(available));
+    }
+
+    @GetMapping("/check/nickname")
+    @Operation(summary = "닉네임 중복 확인", description = "닉네임 사용 가능 여부 확인")
+    public ResponseEntity<ApiResponse<Boolean>> checkNickname(@RequestParam String nickname) {
+        boolean available = !userService.existsByNickname(nickname);
+        return ResponseEntity.ok(ApiResponse.ok(available));
+    }
+
     @GetMapping("/me")
     @Operation(summary = "내 프로필 조회", description = "인증된 사용자 프로필 조회")
     public ResponseEntity<ApiResponse<UserResponse>> getMe(

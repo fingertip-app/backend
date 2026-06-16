@@ -52,9 +52,11 @@ public class SecurityConfig {
                         .accessDeniedHandler(securityErrorHandlers)
                 )
                 .authorizeHttpRequests(authz -> authz
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/health", "/public/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/users/check/email", "/users/check/nickname").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/ai/recommendations").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/artisans/*/approve", "/artisans/*/reject").hasRole("ADMIN")
