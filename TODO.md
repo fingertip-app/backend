@@ -55,10 +55,13 @@
 - [ ] [영진] `AI 추천/문화 설명 + 출처 + 관련 체험` Spring 외부 API 구현 및 FastAPI 연결
   - [x] AI 추천 탭의 취향 입력 요청 DTO 초안 정의: 동행 관계, 인원, 관심사, 지역/시간 조건 (`docs/ai-recommendation-request-dto.md`)
   - [x] 카드뉴스 기반 문화 설명 요청과 취향 기반 추천 요청 분리 결정
+  - [x] 프론트 연동 검증용 `POST /v1/ai/recommendations` 공개 허용
+  - [x] Expo web 개발 origin CORS 허용 추가
   - [ ] FastAPI explain 응답을 Spring DTO로 변환
   - [ ] 출처, 매칭 키워드, 추천 카테고리 필드 노출
   - [ ] FastAPI 응답의 `matchingKeywords`, `recommendedCategories`를 체험 조회 조건으로 변환
   - [ ] AI 실패 시 fallback/error response 처리
+  - [ ] 로그인 토큰 연동 완료 후 AI 추천 API 인증 필수로 재전환
 - [ ] [공통] 관련 체험 매칭 방식 구현
   - [x] `Experience.category` 단일 필드가 아니라 태그 기반 매칭으로 결정
   - [ ] DB 담당: Experience 태그 저장 방식, migration, seed/admin 입력 방식 결정
@@ -94,9 +97,12 @@
   - [ ] 예약 상태 변경 이벤트와 연결
   - [ ] 푸시 연동 전 fallback 조회 API 제공
 - [ ] [영진] 후기 생성 후 FastAPI 요약 요청/저장 흐름 및 번역 호출 구현
-  - [ ] 후기 생성 API에서 요약 요청 트리거
-  - [ ] 요약 실패 시 원문 저장 유지
+  - [x] 후기 생성 API에서 요약 요청 트리거
+  - [x] 요약 실패 시 원문 저장 유지
+  - [x] 체험 완료(COMPLETED) 예약이 있는 사용자만 후기 작성 가능하도록 검증
+  - [x] 후기 생성 controller 인증 principal과 request validation 정리
   - [ ] 번역 결과 저장/조회 필드 정리
+  - [ ] COMPLETED 예약 상태 전이/처리 API가 연결된 뒤 후기 작성 E2E 검증
 - [ ] [공통] 예약-결제-QR 및 AI 실패 fallback 통합 테스트 작성
   - [ ] 정상 결제 E2E
   - [ ] 결제 실패/중복 webhook

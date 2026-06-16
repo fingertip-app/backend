@@ -4,13 +4,14 @@ import com.janginharou.domain.review.dto.ReviewRequest;
 import com.janginharou.domain.review.dto.ReviewResponse;
 import com.janginharou.domain.review.service.ReviewService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -53,10 +54,9 @@ public class ReviewController {
     @PostMapping
     @Operation(summary = "후기 작성", description = "새로운 후기 작성 (예약 완료된 Reservation 기준)")
     public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
-            @RequestBody ReviewRequest request,
-            @AuthenticationPrincipal UserDetails userDetails) {
-        Long userId = Long.parseLong(userDetails.getUsername());
-        ReviewResponse response = ReviewResponse.from(reviewService.createReview(userId, request));
+            @Valid @RequestBody ReviewRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        ReviewResponse response = ReviewResponse.from(reviewService.createReview(currentUser.id(), request));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(response, "Review created successfully"));
     }
