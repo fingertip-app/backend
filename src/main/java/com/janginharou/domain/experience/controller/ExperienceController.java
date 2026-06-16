@@ -6,6 +6,7 @@ import com.janginharou.domain.experience.service.ExperienceService;
 import com.janginharou.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -62,10 +63,12 @@ public class ExperienceController {
 
     @PostMapping
     @Operation(summary = "체험 프로그램 생성", description = "새로운 체험 프로그램 생성")
-    public ResponseEntity<ApiResponse<ExperienceResponse>> createExperience(@RequestBody ExperienceRequest request) {
-        // TODO: 장인 인증 확인 후 체험 프로그램 생성
+    public ResponseEntity<ApiResponse<ExperienceResponse>> createExperience(
+            @RequestParam Long artisanId,
+            @Valid @RequestBody ExperienceRequest request) {
+        ExperienceResponse response = experienceService.createExperience(artisanId, request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "Experience created successfully"));
+                .body(ApiResponse.ok(response, "Experience created successfully"));
     }
 
     @PutMapping("/{experienceId}")

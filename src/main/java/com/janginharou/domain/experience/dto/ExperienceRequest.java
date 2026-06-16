@@ -11,6 +11,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -23,16 +24,18 @@ public class ExperienceRequest {
     private String title;
 
     private String description;
+    private String culturalStory;
+    private String category;
 
     @NotNull
     @Positive
     private BigDecimal price;
 
-    @NotNull
     private LocalDateTime startDateTime;
 
-    @NotNull
     private LocalDateTime endDateTime;
+
+    private Integer durationMinutes;
 
     @NotNull
     @Positive
@@ -45,4 +48,23 @@ public class ExperienceRequest {
 
     private String imageUrl;
     private String location;
+    private String locationAddress;
+    private BigDecimal locationLat;
+    private BigDecimal locationLng;
+    private List<String> tags;
+    private List<ScheduleRequest> schedules;
+
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ScheduleRequest {
+
+        @NotNull
+        private LocalDateTime scheduledAt;
+
+        @NotNull
+        @Positive
+        private Integer availableSlots;
+    }
 }
