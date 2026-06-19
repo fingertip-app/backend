@@ -17,9 +17,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
-import java.util.EnumSet;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
@@ -51,6 +51,14 @@ public class ExperienceService {
     }
 
     @Transactional(readOnly = true)
+    public List<ExperienceResponse> getExperienceResponsesByArtisanId(Long artisanId) {
+        return experienceRepository.findByArtisanId(artisanId)
+                .stream()
+                .map(this::toExperienceResponseWithSchedules)
+                .toList();
+    }
+
+    @Transactional(readOnly = true)
     public List<Experience> getActiveExperiences() {
         return experienceRepository.findByIsActiveTrue();
     }
@@ -59,7 +67,7 @@ public class ExperienceService {
     public List<ExperienceResponse> getActiveExperienceResponses() {
         return experienceRepository.findByIsActiveTrue()
                 .stream()
-                .map(ExperienceResponse::from)
+                .map(this::toExperienceResponseWithSchedules)
                 .toList();
     }
 
@@ -171,6 +179,12 @@ public class ExperienceService {
                 .remainingSlots(remainingSlots)
                 .isActive(schedule.getIsActive())
                 .build();
+    }
+
+    private ExperienceResponse toExperienceResponseWithSchedules(Experience experience) {
+        List<ExperienceSchedule> schedules = experienceScheduleRepository
+                .findByExperienceIdAndIsActiveTrue(experience.getId());
+        return toExperienceResponse(experience, schedules);
     }
 
     private ExperienceResponse toExperienceResponse(Experience experience, List<ExperienceSchedule> schedules) {

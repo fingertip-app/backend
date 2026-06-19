@@ -64,12 +64,12 @@ public class ReservationService {
     public Reservation createReservation(Long userId, ReservationRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        Experience experience = experienceRepository.findById(request.getExperienceId())
-                .orElseThrow(() -> new ResourceNotFoundException("Experience", "id", request.getExperienceId()));
-        ExperienceSchedule schedule = experienceScheduleRepository.findById(request.getScheduleId())
+        ExperienceSchedule schedule = experienceScheduleRepository.findByIdForUpdate(request.getScheduleId())
                 .orElseThrow(() -> new ResourceNotFoundException("ExperienceSchedule", "id", request.getScheduleId()));
+        Experience experience = schedule.getExperience();
 
-        validateReservableExperience(experience, schedule);
+        validateScheduleMatchesExperience(schedule, request.getExperienceId());
+        validateReservableSchedule(schedule);
         validateDuplicateReservation(userId, schedule.getId());
         validateCapacity(schedule, request.getNumberOfParticipants());
 
@@ -98,8 +98,26 @@ public class ReservationService {
     }
 
     @Transactional
+    public Reservation approveReservation(Long reservationId, Long artisanId) {
+        Reservation reservation = getReservationById(reservationId);
+        validateArtisanOwnsReservation(reservation, artisanId);
+        validateStatus(reservation, ReservationStatus.PENDING);
+        reservation.approve();
+        return reservation;
+    }
+
+    @Transactional
     public Reservation rejectReservation(Long reservationId, String rejectionReason) {
         Reservation reservation = getReservationById(reservationId);
+        validateStatus(reservation, ReservationStatus.PENDING);
+        reservation.reject(rejectionReason);
+        return reservation;
+    }
+
+    @Transactional
+    public Reservation rejectReservation(Long reservationId, Long artisanId, String rejectionReason) {
+        Reservation reservation = getReservationById(reservationId);
+        validateArtisanOwnsReservation(reservation, artisanId);
         validateStatus(reservation, ReservationStatus.PENDING);
         reservation.reject(rejectionReason);
         return reservation;
@@ -143,18 +161,22 @@ public class ReservationService {
         return reservationRepository.findByStatus(ReservationStatus.CONFIRMED);
     }
 
-    private void validateReservableExperience(Experience experience, ExperienceSchedule schedule) {
+    private void validateScheduleMatchesExperience(ExperienceSchedule schedule, Long experienceId) {
+        if (!schedule.getExperience().getId().equals(experienceId)) {
+            throw new InvalidRequestException("Schedule does not belong to experience");
+        }
+    }
+
+    private void validateReservableSchedule(ExperienceSchedule schedule) {
+        Experience experience = schedule.getExperience();
         if (!Boolean.TRUE.equals(experience.getIsActive())) {
             throw new InvalidRequestException("Experience is not active");
         }
-        if (!schedule.getExperience().getId().equals(experience.getId())) {
-            throw new InvalidRequestException("Schedule does not belong to the experience");
-        }
         if (!Boolean.TRUE.equals(schedule.getIsActive())) {
-            throw new InvalidRequestException("Schedule is closed");
+            throw new InvalidRequestException("Schedule is not active");
         }
         if (schedule.getScheduledAt().isBefore(LocalDateTime.now())) {
-            throw new InvalidRequestException("Reserved date time has already passed");
+            throw new InvalidRequestException("Schedule has already passed");
         }
     }
 
@@ -164,7 +186,7 @@ public class ReservationService {
                 scheduleId,
                 List.copyOf(ACTIVE_STATUSES)
         )) {
-            throw new InvalidRequestException("Duplicate active reservation exists");
+            throw new InvalidRequestException("Duplicate active reservation exists for this schedule");
         }
     }
 
@@ -175,6 +197,15 @@ public class ReservationService {
         );
         if (currentParticipants + requestedParticipants > schedule.getAvailableSlots()) {
             throw new InvalidRequestException("Booking slot is unavailable");
+        }
+    }
+
+    private void validateArtisanOwnsReservation(Reservation reservation, Long artisanId) {
+        if (artisanId == null) {
+            return;
+        }
+        if (!reservation.getExperience().getArtisan().getId().equals(artisanId)) {
+            throw new InvalidRequestException("Reservation does not belong to artisan");
         }
     }
 

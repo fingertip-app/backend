@@ -200,4 +200,42 @@ class ExperienceServiceTest {
         assertThat(response.getSchedules().get(0).getScheduledAt()).isEqualTo(start);
         assertThat(response.getSchedules().get(0).getAvailableSlots()).isEqualTo(8);
     }
+
+    @Test
+    void returnsSchedulesInActiveExperienceList() {
+        Experience experience = Experience.builder()
+                .id(100L)
+                .artisan(artisan)
+                .title("전통 매듭 만들기")
+                .description("전통 매듭을 배웁니다")
+                .category("공예")
+                .price(BigDecimal.valueOf(30000))
+                .durationMinutes(90)
+                .maxParticipants(8)
+                .difficulty(ExperienceDifficulty.BEGINNER.name())
+                .supportedLanguages(List.of("ko", "en"))
+                .locationAddress("서울 종로구")
+                .isActive(true)
+                .build();
+        ExperienceSchedule schedule = ExperienceSchedule.builder()
+                .id(300L)
+                .experience(experience)
+                .scheduledAt(LocalDateTime.now().plusDays(1))
+                .availableSlots(5)
+                .isActive(true)
+                .build();
+
+        when(experienceRepository.findByIsActiveTrue()).thenReturn(List.of(experience));
+        when(experienceScheduleRepository.findByExperienceIdAndIsActiveTrue(experience.getId()))
+                .thenReturn(List.of(schedule));
+        when(reservationRepository.sumParticipantsByScheduleIdAndStatusIn(eq(schedule.getId()), anyList()))
+                .thenReturn(2);
+
+        List<ExperienceResponse> responses = experienceService.getActiveExperienceResponses();
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getSchedules()).hasSize(1);
+        assertThat(responses.get(0).getSchedules().get(0).getId()).isEqualTo(schedule.getId());
+        assertThat(responses.get(0).getSchedules().get(0).getRemainingSlots()).isEqualTo(3);
+    }
 }

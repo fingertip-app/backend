@@ -33,11 +33,11 @@ public class Reservation extends BaseEntity {
     @JoinColumn(name = "experience_id", nullable = false)
     private Experience experience;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "schedule_id", nullable = false)
     private ExperienceSchedule schedule;
 
-    @Column(nullable = false)
+    @Column(name = "participants", nullable = false)
     private Integer numberOfParticipants;
 
     @Column(nullable = false)
