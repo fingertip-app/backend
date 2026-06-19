@@ -38,21 +38,13 @@ public class ExperienceController {
     @GetMapping("/artisan/{artisanId}")
     @Operation(summary = "장인의 체험 프로그램 목록", description = "특정 장인의 모든 체험 프로그램 조회")
     public ResponseEntity<ApiResponse<List<ExperienceResponse>>> getExperiencesByArtisan(@PathVariable Long artisanId) {
-        List<ExperienceResponse> responses = experienceService.getExperiencesByArtisanId(artisanId)
-                .stream()
-                .map(ExperienceResponse::from)
-                .toList();
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(experienceService.getExperienceResponsesByArtisanId(artisanId)));
     }
 
     @GetMapping("/active")
     @Operation(summary = "활성 체험 프로그램 목록", description = "활성 체험 프로그램 전체 목록 조회")
     public ResponseEntity<ApiResponse<List<ExperienceResponse>>> getActiveExperiences() {
-        List<ExperienceResponse> responses = experienceService.getActiveExperiences()
-                .stream()
-                .map(ExperienceResponse::from)
-                .toList();
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(experienceService.getActiveExperienceResponses()));
     }
 
     @GetMapping("/upcoming")
