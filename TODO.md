@@ -88,7 +88,9 @@
 완료 기준: 앱 API를 통해 AI 추천 탭 또는 카드뉴스에서 추천/문화 설명과 예약 요청으로 이어진다.
 
 ### 6/15 - 6/21: 결제, QR, 후기와 알림
-
+- [x] [서영] 체험 이미지 DB 구조 설계 및 구현
+  - [x] experience_images 테이블 마이그레이션 (V12)
+  - [x] Entity/Repository 매핑, 테스트 통과
 - [ ] [지현] Toss 테스트 결제 준비/승인/webhook 검증과 결제 중복 처리 구현
   - [ ] payment ready/confirm API 구현
   - [ ] webhook 서명 검증
