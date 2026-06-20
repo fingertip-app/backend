@@ -79,4 +79,14 @@ public class Experience extends BaseEntity {
     @Column(name = "tag", nullable = false, length = 100)
     @Builder.Default
     private List<String> tags = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "experience", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    private List<ExperienceImage> images = new ArrayList<>();
+
+    public void addImage(ExperienceImage image) {
+        this.images.add(image);
+        image.setExperience(this);
+    }
 }
