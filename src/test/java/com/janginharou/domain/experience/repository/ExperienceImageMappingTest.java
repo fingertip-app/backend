@@ -41,6 +41,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 class ExperienceImageMappingTest {
 
     @Autowired
+    private ExperienceImageRepository experienceImageRepository;
+
+    @Autowired
     private ExperienceRepository experienceRepository;
 
     @Autowired
@@ -137,5 +140,6 @@ class ExperienceImageMappingTest {
 
         // Then
         assertThat(experienceRepository.findById(experienceId)).isEmpty();
+        assertThat(experienceImageRepository.findByExperienceIdOrderByDisplayOrderAsc(experienceId)).isEmpty();
     }
 }
