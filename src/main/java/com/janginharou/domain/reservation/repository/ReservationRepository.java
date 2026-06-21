@@ -25,6 +25,12 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByUserIdAndExperienceIdAndStatusIn(Long userId, Long experienceId, List<ReservationStatus> statuses);
 
+    Optional<Reservation> findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(
+            Long userId,
+            Long experienceId,
+            List<ReservationStatus> statuses
+    );
+
     boolean existsByUserIdAndScheduleIdAndStatusIn(Long userId, Long scheduleId, List<ReservationStatus> statuses);
 
     @Query("""

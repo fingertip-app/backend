@@ -1,7 +1,8 @@
 package com.janginharou.domain.review.service;
 
-import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
+import com.janginharou.domain.reservation.entity.Reservation;
+import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.review.dto.ReviewRequest;
 import com.janginharou.domain.review.entity.Review;
@@ -56,21 +57,20 @@ public class ReviewService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
         var experience = experienceRepository.findById(request.getExperienceId())
                 .orElseThrow(() -> new ResourceNotFoundException("Experience", "id", request.getExperienceId()));
+        Reservation reservation = resolveReviewableReservation(userId, request);
 
-        if (!reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
-                userId,
-                request.getExperienceId(),
-                REVIEWABLE_RESERVATION_STATUSES
-        )) {
-            throw new InvalidRequestException("Completed reservation is required to create a review");
+        if (reviewRepository.existsByReservationId(reservation.getId())) {
+            throw new InvalidRequestException("Review already exists for this reservation");
         }
 
         Review review = Review.builder()
+                .reservation(reservation)
                 .user(user)
                 .experience(experience)
                 .rating(request.getRating())
                 .content(request.getContent())
                 .newLearnings(request.getNewKnowledge())
+                .imageUrls(toImageUrls(request.getImageUrl()))
                 .build();
 
         Review savedReview = reviewRepository.save(review);
@@ -80,15 +80,69 @@ public class ReviewService {
     }
 
     @Transactional
-    public Review updateReview(Long reviewId, Review updateData) {
-        // TODO: 후기 수정 처리 (본인만 수정 가능)
+    public Review updateReview(Long userId, Long reviewId, ReviewRequest request) {
         Review review = getReviewById(reviewId);
+        validateOwner(review, userId);
+        if (!review.getExperience().getId().equals(request.getExperienceId())) {
+            throw new InvalidRequestException("Review experience cannot be changed");
+        }
+
+        review.update(
+                request.getRating(),
+                request.getContent(),
+                request.getNewKnowledge(),
+                toImageUrls(request.getImageUrl())
+        );
+        applySummaryIfAvailable(review);
         return review;
     }
 
     @Transactional
-    public void deleteReview(Long reviewId) {
-        reviewRepository.deleteById(reviewId);
+    public void deleteReview(Long userId, Long reviewId) {
+        Review review = getReviewById(reviewId);
+        validateOwner(review, userId);
+        reviewRepository.delete(review);
+    }
+
+    private Reservation resolveReviewableReservation(Long userId, ReviewRequest request) {
+        if (request.getReservationId() != null) {
+            Reservation reservation = reservationRepository.findById(request.getReservationId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Reservation", "id", request.getReservationId()));
+            validateReviewableReservation(reservation, userId, request.getExperienceId());
+            return reservation;
+        }
+
+        return reservationRepository.findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(
+                        userId,
+                        request.getExperienceId(),
+                        REVIEWABLE_RESERVATION_STATUSES
+                )
+                .orElseThrow(() -> new InvalidRequestException("Completed reservation is required to create a review"));
+    }
+
+    private void validateReviewableReservation(Reservation reservation, Long userId, Long experienceId) {
+        if (!reservation.getUser().getId().equals(userId)) {
+            throw new InvalidRequestException("Reservation does not belong to user");
+        }
+        if (!reservation.getExperience().getId().equals(experienceId)) {
+            throw new InvalidRequestException("Reservation does not belong to experience");
+        }
+        if (!REVIEWABLE_RESERVATION_STATUSES.contains(reservation.getStatus())) {
+            throw new InvalidRequestException("Completed reservation is required to create a review");
+        }
+    }
+
+    private void validateOwner(Review review, Long userId) {
+        if (!review.getUser().getId().equals(userId)) {
+            throw new InvalidRequestException("Review does not belong to user");
+        }
+    }
+
+    private List<String> toImageUrls(String imageUrl) {
+        if (imageUrl == null || imageUrl.isBlank()) {
+            return List.of();
+        }
+        return List.of(imageUrl.trim());
     }
 
     private void applySummaryIfAvailable(Review review) {

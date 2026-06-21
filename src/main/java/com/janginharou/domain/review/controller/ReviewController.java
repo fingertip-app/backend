@@ -65,15 +65,18 @@ public class ReviewController {
     @Operation(summary = "후기 수정", description = "후기 수정 (작성자만 가능)")
     public ResponseEntity<ApiResponse<ReviewResponse>> updateReview(
             @PathVariable Long reviewId,
-            @RequestBody ReviewRequest request) {
-        // TODO: 후기 작성자 확인 후 수정 처리
-        return ResponseEntity.ok(ApiResponse.ok(null, "Review updated successfully"));
+            @Valid @RequestBody ReviewRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        ReviewResponse response = ReviewResponse.from(reviewService.updateReview(currentUser.id(), reviewId, request));
+        return ResponseEntity.ok(ApiResponse.ok(response, "Review updated successfully"));
     }
 
     @DeleteMapping("/{reviewId}")
     @Operation(summary = "후기 삭제", description = "후기 삭제 (작성자만 가능)")
-    public ResponseEntity<ApiResponse<Void>> deleteReview(@PathVariable Long reviewId) {
-        // TODO: 후기 작성자 확인 후 삭제 처리
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        reviewService.deleteReview(currentUser.id(), reviewId);
         return ResponseEntity.ok(ApiResponse.ok(null, "Review deleted successfully"));
     }
 }

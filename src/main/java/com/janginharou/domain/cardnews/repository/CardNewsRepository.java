@@ -11,7 +11,7 @@ public interface CardNewsRepository extends JpaRepository<CardNews, Long> {
 
     List<CardNews> findByIsActiveTrue();
 
-    List<CardNews> findByContentType(String contentType);
+    List<CardNews> findByContentTypeAndIsActiveTrue(String contentType);
 
     List<CardNews> findByCategoryTagsContainingAndIsActiveTrue(String tag);
 }
