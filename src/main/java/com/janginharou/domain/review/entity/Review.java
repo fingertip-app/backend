@@ -77,4 +77,14 @@ public class Review {
         this.sentimentScore = sentimentScore;
         this.keywords = keywords;
     }
+
+    public void update(Integer rating, String content, String newLearnings, List<String> imageUrls) {
+        this.rating = rating;
+        this.content = content;
+        this.newLearnings = newLearnings;
+        this.imageUrls = imageUrls;
+        this.summary = null;
+        this.sentimentScore = null;
+        this.keywords = null;
+    }
 }

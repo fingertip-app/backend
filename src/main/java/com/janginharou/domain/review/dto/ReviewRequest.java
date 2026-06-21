@@ -14,6 +14,8 @@ import lombok.NoArgsConstructor;
 @Builder
 public class ReviewRequest {
 
+    private Long reservationId;
+
     @NotNull
     private Long experienceId;
 

@@ -21,10 +21,15 @@ public class CardNewsResponse {
     private String imageUrl;
     private String aiExplanation;
     private List<String> categoryTags;
+    private List<Long> relatedExperienceIds;
     private Boolean isActive;
     private LocalDateTime createdAt;
 
     public static CardNewsResponse from(CardNews cardNews) {
+        return from(cardNews, List.of());
+    }
+
+    public static CardNewsResponse from(CardNews cardNews, List<Long> relatedExperienceIds) {
         return CardNewsResponse.builder()
                 .id(cardNews.getId())
                 .title(cardNews.getTitle())
@@ -32,6 +37,7 @@ public class CardNewsResponse {
                 .imageUrl(cardNews.getImageUrl())
                 .aiExplanation(cardNews.getAiExplanation())
                 .categoryTags(cardNews.getCategoryTags())
+                .relatedExperienceIds(relatedExperienceIds)
                 .isActive(cardNews.getIsActive())
                 .createdAt(cardNews.getCreatedAt())
                 .build();

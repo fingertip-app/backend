@@ -2,6 +2,7 @@ package com.janginharou.domain.review.service;
 
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
+import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.review.dto.ReviewRequest;
@@ -67,6 +68,7 @@ class ReviewServiceTest {
     void savesReviewWithSummaryFromAi() {
         User user = User.builder().id(1L).build();
         Experience experience = Experience.builder().id(100L).build();
+        Reservation reservation = completedReservation(10L, user, experience);
         ReviewRequest request = ReviewRequest.builder()
                 .experienceId(100L)
                 .rating(5)
@@ -76,6 +78,7 @@ class ReviewServiceTest {
 
         Review savedReview = Review.builder()
                 .id(1L)
+                .reservation(reservation)
                 .user(user)
                 .experience(experience)
                 .rating(request.getRating())
@@ -91,11 +94,12 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
-        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
+        when(reservationRepository.findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(
                 eq(1L),
                 eq(100L),
                 eq(List.of(ReservationStatus.COMPLETED))
-        )).thenReturn(true);
+        )).thenReturn(Optional.of(reservation));
+        when(reviewRepository.existsByReservationId(reservation.getId())).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
         when(fastApiClient.summarizeReview("정말 좋은 체험이었습니다!", "ko"))
                 .thenReturn(aiResponse);
@@ -116,6 +120,7 @@ class ReviewServiceTest {
     void maintainsOriginalContentWhenAiFails() {
         User user = User.builder().id(1L).build();
         Experience experience = Experience.builder().id(100L).build();
+        Reservation reservation = completedReservation(11L, user, experience);
         ReviewRequest request = ReviewRequest.builder()
                 .experienceId(100L)
                 .rating(4)
@@ -125,6 +130,7 @@ class ReviewServiceTest {
 
         Review savedReview = Review.builder()
                 .id(2L)
+                .reservation(reservation)
                 .user(user)
                 .experience(experience)
                 .rating(request.getRating())
@@ -134,8 +140,9 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
-        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(any(), any(), any()))
-                .thenReturn(true);
+        when(reservationRepository.findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(any(), any(), any()))
+                .thenReturn(Optional.of(reservation));
+        when(reviewRepository.existsByReservationId(reservation.getId())).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
         when(fastApiClient.summarizeReview(anyString(), anyString()))
                 .thenThrow(new ExternalServiceException("AI service unavailable", "AI_UNAVAILABLE"));
@@ -153,6 +160,7 @@ class ReviewServiceTest {
     void doesNotCallAiWhenContentIsBlank() {
         User user = User.builder().id(1L).build();
         Experience experience = Experience.builder().id(100L).build();
+        Reservation reservation = completedReservation(12L, user, experience);
         ReviewRequest request = ReviewRequest.builder()
                 .experienceId(100L)
                 .rating(3)
@@ -162,6 +170,7 @@ class ReviewServiceTest {
 
         Review savedReview = Review.builder()
                 .id(3L)
+                .reservation(reservation)
                 .user(user)
                 .experience(experience)
                 .rating(request.getRating())
@@ -171,8 +180,9 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
-        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(any(), any(), any()))
-                .thenReturn(true);
+        when(reservationRepository.findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(any(), any(), any()))
+                .thenReturn(Optional.of(reservation));
+        when(reviewRepository.existsByReservationId(reservation.getId())).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
 
         Review result = reviewService.createReview(1L, request);
@@ -185,6 +195,7 @@ class ReviewServiceTest {
     void updatesReviewFieldsWithAiResponse() {
         User user = User.builder().id(1L).build();
         Experience experience = Experience.builder().id(100L).build();
+        Reservation reservation = completedReservation(13L, user, experience);
         ReviewRequest request = ReviewRequest.builder()
                 .experienceId(100L)
                 .rating(5)
@@ -194,6 +205,7 @@ class ReviewServiceTest {
 
         Review savedReview = Review.builder()
                 .id(4L)
+                .reservation(reservation)
                 .user(user)
                 .experience(experience)
                 .rating(request.getRating())
@@ -209,8 +221,9 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
-        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(any(), any(), any()))
-                .thenReturn(true);
+        when(reservationRepository.findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(any(), any(), any()))
+                .thenReturn(Optional.of(reservation));
+        when(reviewRepository.existsByReservationId(reservation.getId())).thenReturn(false);
         when(reviewRepository.save(any(Review.class))).thenReturn(savedReview);
         when(fastApiClient.summarizeReview(anyString(), anyString()))
                 .thenReturn(aiResponse);
@@ -236,11 +249,11 @@ class ReviewServiceTest {
 
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(experienceRepository.findById(100L)).thenReturn(Optional.of(experience));
-        when(reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
+        when(reservationRepository.findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(
                 eq(1L),
                 eq(100L),
                 eq(List.of(ReservationStatus.COMPLETED))
-        )).thenReturn(false);
+        )).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> reviewService.createReview(1L, request))
                 .isInstanceOf(InvalidRequestException.class)
@@ -248,5 +261,76 @@ class ReviewServiceTest {
 
         verify(reviewRepository, never()).save(any(Review.class));
         verify(fastApiClient, never()).summarizeReview(anyString(), anyString());
+    }
+
+    @Test
+    void updatesReviewOnlyForOwner() {
+        User user = User.builder().id(1L).build();
+        Experience experience = Experience.builder().id(100L).build();
+        Reservation reservation = completedReservation(20L, user, experience);
+        Review review = Review.builder()
+                .id(30L)
+                .reservation(reservation)
+                .user(user)
+                .experience(experience)
+                .rating(3)
+                .content("기존 후기")
+                .newLearnings("기존 배움")
+                .build();
+        ReviewRequest request = ReviewRequest.builder()
+                .experienceId(100L)
+                .rating(5)
+                .content("수정된 후기")
+                .newKnowledge("수정된 배움")
+                .imageUrl("https://example.com/review.png")
+                .build();
+        FastApiSummarizeResponse aiResponse = new FastApiSummarizeResponse(
+                "수정 요약",
+                BigDecimal.valueOf(0.7),
+                List.of("수정")
+        );
+
+        when(reviewRepository.findById(30L)).thenReturn(Optional.of(review));
+        when(fastApiClient.summarizeReview("수정된 후기", "ko")).thenReturn(aiResponse);
+
+        Review result = reviewService.updateReview(1L, 30L, request);
+
+        assertThat(result.getRating()).isEqualTo(5);
+        assertThat(result.getContent()).isEqualTo("수정된 후기");
+        assertThat(result.getNewLearnings()).isEqualTo("수정된 배움");
+        assertThat(result.getImageUrls()).containsExactly("https://example.com/review.png");
+        assertThat(result.getSummary()).isEqualTo("수정 요약");
+    }
+
+    @Test
+    void rejectsDeleteWhenUserIsNotOwner() {
+        User owner = User.builder().id(1L).build();
+        Experience experience = Experience.builder().id(100L).build();
+        Reservation reservation = completedReservation(21L, owner, experience);
+        Review review = Review.builder()
+                .id(31L)
+                .reservation(reservation)
+                .user(owner)
+                .experience(experience)
+                .rating(4)
+                .content("후기")
+                .build();
+
+        when(reviewRepository.findById(31L)).thenReturn(Optional.of(review));
+
+        assertThatThrownBy(() -> reviewService.deleteReview(99L, 31L))
+                .isInstanceOf(InvalidRequestException.class)
+                .hasMessage("Review does not belong to user");
+
+        verify(reviewRepository, never()).delete(any(Review.class));
+    }
+
+    private Reservation completedReservation(Long id, User user, Experience experience) {
+        return Reservation.builder()
+                .id(id)
+                .user(user)
+                .experience(experience)
+                .status(ReservationStatus.COMPLETED)
+                .build();
     }
 }

@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.util.List;
 import java.util.Set;
 
 @Getter
@@ -25,4 +26,5 @@ public class CardNewsRequest {
     private Long linkedExperienceId;
     private String imageUrl;
     private Set<String> personalizationTags;
+    private List<Long> relatedExperienceIds;
 }
