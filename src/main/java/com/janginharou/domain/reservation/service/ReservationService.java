@@ -34,6 +34,7 @@ public class ReservationService {
     private final ExperienceRepository experienceRepository;
     private final ExperienceScheduleRepository experienceScheduleRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.janginharou.domain.qr.service.QrCodeService qrCodeService;
 
     private static final Set<ReservationStatus> ACTIVE_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -150,6 +151,13 @@ public class ReservationService {
         validateStatus(reservation, ReservationStatus.PAID);
         ReservationStatus oldStatus = reservation.getStatus();
         reservation.confirm();
+
+        // QR 코드 생성 및 저장
+        if (reservation.getQrCode() == null) {
+            String qrToken = qrCodeService.generateQrToken(reservationId);
+            reservation.setQrCode(qrToken);
+        }
+
         publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }

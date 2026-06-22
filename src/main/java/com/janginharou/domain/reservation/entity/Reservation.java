@@ -59,8 +59,15 @@ public class Reservation extends BaseEntity {
     @Column(nullable = false)
     private Boolean isNotificationSent;
 
+    @Column(name = "qr_code")
+    private String qrCode;
+
     public void approve() {
         this.status = ReservationStatus.APPROVED;
+    }
+
+    public void setQrCode(String qrCode) {
+        this.qrCode = qrCode;
     }
 
     public void pay(String paymentKey, String paymentOrderId) {

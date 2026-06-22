@@ -45,4 +45,6 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
     );
 
     Optional<Reservation> findByPaymentOrderId(String paymentOrderId);
+
+    Optional<Reservation> findByQrCode(String qrCode);
 }
