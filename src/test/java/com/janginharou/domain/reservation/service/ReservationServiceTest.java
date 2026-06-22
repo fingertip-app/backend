@@ -8,11 +8,13 @@ import com.janginharou.domain.experience.repository.ExperienceScheduleRepository
 import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
+import com.janginharou.domain.reservation.event.ReservationStatusChangedEvent;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -26,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -43,6 +46,9 @@ class ReservationServiceTest {
     @Mock
     private ExperienceScheduleRepository experienceScheduleRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private ReservationService reservationService;
 
     private User user;
@@ -56,7 +62,8 @@ class ReservationServiceTest {
                 reservationRepository,
                 userRepository,
                 experienceRepository,
-                experienceScheduleRepository
+                experienceScheduleRepository,
+                eventPublisher
         );
 
         user = User.builder()
@@ -189,6 +196,39 @@ class ReservationServiceTest {
         assertThatThrownBy(() -> reservationService.approveReservation(reservation.getId(), 99L))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Reservation does not belong to artisan");
+    }
+
+    @Test
+    void shouldPublishEventWhenApproveReservation() {
+        Reservation reservation = pendingReservation();
+
+        when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
+
+        reservationService.approveReservation(reservation.getId());
+
+        verify(eventPublisher).publishEvent(any(ReservationStatusChangedEvent.class));
+    }
+
+    @Test
+    void shouldPublishEventWhenRejectReservation() {
+        Reservation reservation = pendingReservation();
+
+        when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
+
+        reservationService.rejectReservation(reservation.getId(), "일정이 맞지 않습니다");
+
+        verify(eventPublisher).publishEvent(any(ReservationStatusChangedEvent.class));
+    }
+
+    @Test
+    void shouldPublishEventWhenCancelReservation() {
+        Reservation reservation = pendingReservation();
+
+        when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
+
+        reservationService.cancelReservation(reservation.getId(), "개인 사정");
+
+        verify(eventPublisher).publishEvent(any(ReservationStatusChangedEvent.class));
     }
 
     private Reservation pendingReservation() {

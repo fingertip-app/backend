@@ -7,12 +7,14 @@ import com.janginharou.domain.experience.repository.ExperienceScheduleRepository
 import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
+import com.janginharou.domain.reservation.event.ReservationStatusChangedEvent;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,7 @@ public class ReservationService {
     private final UserRepository userRepository;
     private final ExperienceRepository experienceRepository;
     private final ExperienceScheduleRepository experienceScheduleRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final Set<ReservationStatus> ACTIVE_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -93,7 +96,9 @@ public class ReservationService {
     public Reservation approveReservation(Long reservationId) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.approve();
+        publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
 
@@ -102,7 +107,9 @@ public class ReservationService {
         Reservation reservation = getReservationById(reservationId);
         validateArtisanOwnsReservation(reservation, artisanId);
         validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.approve();
+        publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
 
@@ -110,7 +117,9 @@ public class ReservationService {
     public Reservation rejectReservation(Long reservationId, String rejectionReason) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.reject(rejectionReason);
+        publishStatusChangeEvent(reservation, oldStatus, rejectionReason);
         return reservation;
     }
 
@@ -119,7 +128,9 @@ public class ReservationService {
         Reservation reservation = getReservationById(reservationId);
         validateArtisanOwnsReservation(reservation, artisanId);
         validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.reject(rejectionReason);
+        publishStatusChangeEvent(reservation, oldStatus, rejectionReason);
         return reservation;
     }
 
@@ -127,7 +138,9 @@ public class ReservationService {
     public Reservation processPayment(Long reservationId, String paymentKey) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.APPROVED);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.pay(paymentKey, createPaymentOrderId(reservation));
+        publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
 
@@ -135,7 +148,9 @@ public class ReservationService {
     public Reservation confirmReservation(Long reservationId) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.PAID);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.confirm();
+        publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
 
@@ -147,7 +162,9 @@ public class ReservationService {
                 || reservation.getStatus() == ReservationStatus.CANCELLED) {
             throw new InvalidRequestException("Cannot cancel reservation in status: " + reservation.getStatus());
         }
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.cancel(cancellationReason);
+        publishStatusChangeEvent(reservation, oldStatus, cancellationReason);
         return reservation;
     }
 
@@ -207,6 +224,19 @@ public class ReservationService {
         if (!reservation.getExperience().getArtisan().getId().equals(artisanId)) {
             throw new InvalidRequestException("Reservation does not belong to artisan");
         }
+    }
+
+    private void publishStatusChangeEvent(Reservation reservation, ReservationStatus oldStatus, String reason) {
+        ReservationStatusChangedEvent event = ReservationStatusChangedEvent.of(
+                reservation.getId(),
+                reservation.getUser(), // User 객체 직접 전달로 리스너에서 DB 조회 불필요
+                reservation.getExperience().getId(),
+                reservation.getExperience().getTitle(),
+                oldStatus,
+                reservation.getStatus(),
+                reason
+        );
+        eventPublisher.publishEvent(event);
     }
 
     private void validateStatus(Reservation reservation, ReservationStatus expectedStatus) {
