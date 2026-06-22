@@ -225,7 +225,10 @@ public class ExperienceService {
             return List.of();
         }
         return experience.getImages().stream()
-                .sorted(Comparator.comparing(ExperienceImage::getDisplayOrder))
+                .sorted(Comparator.comparing(
+                        ExperienceImage::getDisplayOrder,
+                        Comparator.nullsFirst(Comparator.naturalOrder())
+                ))
                 .map(ExperienceResponse.ImageResponse::from)
                 .toList();
     }

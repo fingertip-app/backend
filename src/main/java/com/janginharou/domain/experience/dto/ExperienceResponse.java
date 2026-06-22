@@ -1,5 +1,4 @@
 package com.janginharou.domain.experience.dto;
-import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.entity.ExperienceImage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -7,7 +6,6 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
-import java.util.Comparator;
 import java.util.List;
 @Getter
 @NoArgsConstructor
@@ -34,36 +32,6 @@ public class ExperienceResponse {
     private List<String> tags;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    public static ExperienceResponse from(Experience experience) {
-        return ExperienceResponse.builder()
-                .id(experience.getId())
-                .artisanId(experience.getArtisan().getId())
-                .title(experience.getTitle())
-                .description(experience.getDescription())
-                .culturalStory(experience.getCulturalStory())
-                .category(experience.getCategory())
-                .price(experience.getPrice())
-                .durationMinutes(experience.getDurationMinutes())
-                .maxParticipants(experience.getMaxParticipants())
-                .difficulty(experience.getDifficulty())
-                .supportedLanguages(experience.getSupportedLanguages())
-                .locationAddress(experience.getLocationAddress())
-                .locationLat(experience.getLocationLat())
-                .locationLng(experience.getLocationLng())
-                .isActive(experience.getIsActive())
-                .images(
-                        experience.getImages() != null
-                                ? experience.getImages().stream()
-                                        .sorted(Comparator.comparing(ExperienceImage::getDisplayOrder))
-                                        .map(ImageResponse::from)
-                                        .toList()
-                                : List.of()
-                )
-                .tags(experience.getTags() != null ? experience.getTags() : List.of())
-                .createdAt(experience.getCreatedAt())
-                .updatedAt(experience.getUpdatedAt())
-                .build();
-    }
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
