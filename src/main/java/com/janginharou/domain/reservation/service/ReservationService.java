@@ -229,7 +229,7 @@ public class ReservationService {
     private void publishStatusChangeEvent(Reservation reservation, ReservationStatus oldStatus, String reason) {
         ReservationStatusChangedEvent event = ReservationStatusChangedEvent.of(
                 reservation.getId(),
-                reservation.getUser().getId(),
+                reservation.getUser(), // User 객체 직접 전달로 리스너에서 DB 조회 불필요
                 reservation.getExperience().getId(),
                 reservation.getExperience().getTitle(),
                 oldStatus,

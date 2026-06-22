@@ -1,6 +1,7 @@
 package com.janginharou.domain.reservation.event;
 
 import com.janginharou.domain.reservation.entity.ReservationStatus;
+import com.janginharou.domain.user.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -17,7 +18,7 @@ import java.time.LocalDateTime;
 public class ReservationStatusChangedEvent {
 
     private final Long reservationId;
-    private final Long userId;
+    private final User user; // userId 대신 User 객체로 변경하여 리스너에서 DB 조회 불필요
     private final Long experienceId;
     private final String experienceTitle;
     private final ReservationStatus oldStatus;
@@ -27,7 +28,7 @@ public class ReservationStatusChangedEvent {
 
     public static ReservationStatusChangedEvent of(
             Long reservationId,
-            Long userId,
+            User user,
             Long experienceId,
             String experienceTitle,
             ReservationStatus oldStatus,
@@ -36,7 +37,7 @@ public class ReservationStatusChangedEvent {
     ) {
         return ReservationStatusChangedEvent.builder()
                 .reservationId(reservationId)
-                .userId(userId)
+                .user(user)
                 .experienceId(experienceId)
                 .experienceTitle(experienceTitle)
                 .oldStatus(oldStatus)

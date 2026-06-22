@@ -5,7 +5,9 @@ import com.janginharou.domain.notification.dto.NotificationResponse;
 import com.janginharou.domain.notification.entity.Notification;
 import com.janginharou.domain.notification.service.NotificationService;
 import com.janginharou.domain.user.entity.User;
+import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -22,6 +24,7 @@ import java.util.List;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @GetMapping("/{notificationId}")
     @Operation(summary = "알림 조회", description = "알림 ID로 알림 정보 조회")
@@ -60,8 +63,11 @@ public class NotificationController {
     @PostMapping
     @Operation(summary = "알림 생성 및 발송", description = "새로운 알림 생성 및 비동기 발송")
     public ResponseEntity<ApiResponse<NotificationResponse>> createNotification(@RequestBody NotificationRequest request) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getUserId()));
+
         Notification notification = Notification.builder()
-                .user(com.janginharou.domain.user.entity.User.builder().id(request.getUserId()).build())
+                .user(user)
                 .title(request.getTitle())
                 .body(request.getBody())
                 .build();

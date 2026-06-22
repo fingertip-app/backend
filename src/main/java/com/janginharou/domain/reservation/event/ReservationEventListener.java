@@ -3,13 +3,12 @@ package com.janginharou.domain.reservation.event;
 import com.janginharou.domain.notification.entity.Notification;
 import com.janginharou.domain.notification.service.NotificationService;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
-import com.janginharou.domain.user.entity.User;
-import com.janginharou.domain.user.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.event.TransactionPhase;
+import org.springframework.transaction.event.TransactionalEventListener;
 
 /**
  * 예약 상태 변경 이벤트 리스너
@@ -21,30 +20,26 @@ import org.springframework.stereotype.Component;
 public class ReservationEventListener {
 
     private final NotificationService notificationService;
-    private final UserRepository userRepository;
 
     @Async("taskExecutor")
-    @EventListener
+    @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handleReservationStatusChanged(ReservationStatusChangedEvent event) {
         log.info("Handling reservation status change: reservationId={}, oldStatus={}, newStatus={}",
                 event.getReservationId(), event.getOldStatus(), event.getNewStatus());
 
         try {
-            User user = userRepository.findById(event.getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("User not found: " + event.getUserId()));
-
             String title = generateNotificationTitle(event.getNewStatus(), event.getExperienceTitle());
             String body = generateNotificationBody(event);
 
             Notification notification = Notification.builder()
-                    .user(user)
+                    .user(event.getUser())
                     .title(title)
                     .body(body)
                     .build();
 
             notificationService.createNotification(notification);
 
-            log.info("Notification created successfully for user: {}", event.getUserId());
+            log.info("Notification created successfully for user: {}", event.getUser().getId());
         } catch (Exception e) {
             log.error("Failed to create notification for reservation: {}", event.getReservationId(), e);
             // 알림 실패가 예약 처리 자체를 방해하지 않도록 예외를 삼킴
