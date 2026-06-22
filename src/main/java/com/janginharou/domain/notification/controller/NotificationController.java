@@ -2,7 +2,9 @@ package com.janginharou.domain.notification.controller;
 
 import com.janginharou.domain.notification.dto.NotificationRequest;
 import com.janginharou.domain.notification.dto.NotificationResponse;
+import com.janginharou.domain.notification.entity.Notification;
 import com.janginharou.domain.notification.service.NotificationService;
+import com.janginharou.domain.user.entity.User;
 import com.janginharou.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
