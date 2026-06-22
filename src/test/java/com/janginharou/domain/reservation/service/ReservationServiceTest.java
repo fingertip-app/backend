@@ -13,6 +13,7 @@ import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import org.junit.jupiter.api.BeforeEach;
+import org.springframework.context.ApplicationEventPublisher;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -43,6 +44,9 @@ class ReservationServiceTest {
     @Mock
     private ExperienceScheduleRepository experienceScheduleRepository;
 
+    @Mock
+    private ApplicationEventPublisher eventPublisher;
+
     private ReservationService reservationService;
 
     private User user;
@@ -56,7 +60,8 @@ class ReservationServiceTest {
                 reservationRepository,
                 userRepository,
                 experienceRepository,
-                experienceScheduleRepository
+                experienceScheduleRepository,
+                eventPublisher
         );
 
         user = User.builder()
