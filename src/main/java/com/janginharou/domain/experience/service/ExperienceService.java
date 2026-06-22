@@ -5,6 +5,7 @@ import com.janginharou.domain.artisan.repository.ArtisanRepository;
 import com.janginharou.domain.experience.dto.ExperienceRequest;
 import com.janginharou.domain.experience.dto.ExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
+import com.janginharou.domain.experience.entity.ExperienceImage;
 import com.janginharou.domain.experience.entity.ExperienceSchedule;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.experience.repository.ExperienceScheduleRepository;
@@ -19,6 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
@@ -97,6 +99,8 @@ public class ExperienceService {
                 .locationLng(experience.getLocationLng())
                 .isActive(experience.getIsActive())
                 .schedules(schedules)
+                .images(toImageResponses(experience))
+                .tags(toTagList(experience))
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();
@@ -205,9 +209,32 @@ public class ExperienceService {
                 .locationLng(experience.getLocationLng())
                 .isActive(experience.getIsActive())
                 .schedules(schedules.stream().map(this::toScheduleResponse).toList())
+                .images(toImageResponses(experience))
+                .tags(toTagList(experience))
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();
+    }
+
+    /**
+     * Experience의 images 연관관계를 display_order 기준으로 정렬해 DTO 리스트로 변환한다.
+     * images가 비어있거나 null이면 빈 리스트를 반환한다(프론트에서 null-safe하게 처리하도록).
+     */
+    private List<ExperienceResponse.ImageResponse> toImageResponses(Experience experience) {
+        if (experience.getImages() == null) {
+            return List.of();
+        }
+        return experience.getImages().stream()
+                .sorted(Comparator.comparing(ExperienceImage::getDisplayOrder))
+                .map(ExperienceResponse.ImageResponse::from)
+                .toList();
+    }
+
+    /**
+     * Experience의 tags를 반환한다. null이면 빈 리스트로 대체한다.
+     */
+    private List<String> toTagList(Experience experience) {
+        return experience.getTags() != null ? experience.getTags() : List.of();
     }
 
     private List<ExperienceRequest.ScheduleRequest> resolveSchedules(ExperienceRequest request) {
