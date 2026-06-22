@@ -58,9 +58,17 @@ public class NotificationController {
     @PostMapping
     @Operation(summary = "알림 생성 및 발송", description = "새로운 알림 생성 및 비동기 발송")
     public ResponseEntity<ApiResponse<NotificationResponse>> createNotification(@RequestBody NotificationRequest request) {
-        // TODO: 알림 생성 및 비동기 발송 처리
+        Notification notification = Notification.builder()
+                .user(com.janginharou.domain.user.entity.User.builder().id(request.getUserId()).build())
+                .title(request.getTitle())
+                .body(request.getBody())
+                .build();
+
+        Notification created = notificationService.createNotification(notification);
+        NotificationResponse response = NotificationResponse.from(created);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "Notification created and sent successfully"));
+                .body(ApiResponse.ok(response, "Notification created and sent successfully"));
     }
 
     @PutMapping("/{notificationId}/read")
@@ -73,14 +81,14 @@ public class NotificationController {
     @PutMapping("/user/{userId}/read-all")
     @Operation(summary = "모든 알림 읽음 표시", description = "사용자의 모든 미읽은 알림을 읽음으로 표시")
     public ResponseEntity<ApiResponse<Void>> markAllAsRead(@PathVariable Long userId) {
-        // TODO: 사용자의 모든 미읽은 알림을 읽음으로 표시
+        notificationService.markAllAsRead(userId);
         return ResponseEntity.ok(ApiResponse.ok(null, "All notifications marked as read"));
     }
 
     @DeleteMapping("/{notificationId}")
     @Operation(summary = "알림 삭제", description = "알림 삭제")
     public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable Long notificationId) {
-        // TODO: 알림 삭제 처리
+        notificationService.deleteNotification(notificationId);
         return ResponseEntity.ok(ApiResponse.ok(null, "Notification deleted successfully"));
     }
 }
