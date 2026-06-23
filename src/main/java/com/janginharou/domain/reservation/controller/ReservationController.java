@@ -86,7 +86,7 @@ public class ReservationController {
         log.info("✅ [컨트롤러] JWT에서 userId 추출 완료 - userId: {}", userId);
 
         ReservationResponse response = ReservationResponse.from(reservationService.createReservation(userId, request));
-        log.info("✅ [컨트롤러] 예약 생성 완료 - reservationId: {}", response.id());
+        log.info("✅ [컨트롤러] 예약 생성 완료 - reservationId: {}", response.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(response, "Reservation created successfully"));

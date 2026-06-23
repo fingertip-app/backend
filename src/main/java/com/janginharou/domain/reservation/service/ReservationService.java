@@ -71,7 +71,7 @@ public class ReservationService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        log.info("✅ [예약 생성] 사용자 조회 성공 - user: {}", user.getName());
+        log.info("✅ [예약 생성] 사용자 조회 성공 - user: {}", user.getNickname());
 
         ExperienceSchedule schedule = experienceScheduleRepository.findByIdForUpdate(request.getScheduleId())
                 .orElseThrow(() -> new ResourceNotFoundException("ExperienceSchedule", "id", request.getScheduleId()));
