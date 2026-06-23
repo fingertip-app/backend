@@ -8,11 +8,11 @@ import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
@@ -24,13 +24,25 @@ public class QrCodeService {
 
     private final ReservationRepository reservationRepository;
 
+    @Value("${app.qr.secret-key:default-secret-key-change-in-production}")
+    private String qrSecretKey;
+
+    @Value("${app.timezone:Asia/Seoul}")
+    private String appTimezone;
+
+    private static final String QR_TOKEN_PREFIX = "JANGINHAROU-RESERVATION:";
+
     /**
-     * QR 토큰 생성
+     * QR 토큰 생성 (멱등성 보장)
+     * 같은 reservationId는 항상 같은 토큰 생성
      * 형식: JANGINHAROU-RESERVATION:{UUID 16자}
      */
     public String generateQrToken(Long reservationId) {
-        String uuid = UUID.randomUUID().toString().replace("-", "").substring(0, 16);
-        return "JANGINHAROU-RESERVATION:" + uuid;
+        String namespace = "JANGINHAROU-RESERVATION-" + qrSecretKey;
+        String input = namespace + "-" + reservationId;
+        UUID uuid = UUID.nameUUIDFromBytes(input.getBytes());
+        String encoded = uuid.toString().replace("-", "").substring(0, 16);
+        return QR_TOKEN_PREFIX + encoded;
     }
 
     /**
@@ -60,8 +72,9 @@ public class QrCodeService {
 
         // 1. 체험 시간 검증 (체험 시작 10분 전 ~ 시작 후 20분까지 유효)
         Instant now = Instant.now();
+        ZoneId timezone = ZoneId.of(appTimezone);
         Instant scheduledInstant = reservation.getSchedule().getScheduledAt()
-                .atZone(ZoneId.of("Asia/Seoul"))
+                .atZone(timezone)
                 .toInstant();
         Instant validFrom = scheduledInstant.minus(10, ChronoUnit.MINUTES);
         Instant validUntil = scheduledInstant.plus(20, ChronoUnit.MINUTES);
