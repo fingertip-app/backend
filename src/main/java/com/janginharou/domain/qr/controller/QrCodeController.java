@@ -41,4 +41,15 @@ public class QrCodeController {
         QrVerifyResponse response = qrCodeService.verifyQrCode(request.getToken());
         return ResponseEntity.ok(ApiResponse.ok(response, "QR code verified successfully"));
     }
+
+    /**
+     * QR 코드 재생성 (결제 완료 후 생성 실패 시 복구용)
+     * POST /api/qr/regenerate/{reservationId}
+     */
+    @PostMapping("/regenerate/{reservationId}")
+    @Operation(summary = "QR 코드 재생성", description = "결제 완료 후 QR 생성 실패 시 재생성")
+    public ResponseEntity<ApiResponse<String>> regenerateQrCode(@PathVariable Long reservationId) {
+        String qrCode = qrCodeService.regenerateQrCode(reservationId);
+        return ResponseEntity.ok(ApiResponse.ok(qrCode, "QR code regenerated successfully"));
+    }
 }
