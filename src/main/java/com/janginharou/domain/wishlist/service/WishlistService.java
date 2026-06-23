@@ -7,6 +7,8 @@ import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.domain.wishlist.dto.WishlistResponse;
 import com.janginharou.domain.wishlist.entity.Wishlist;
 import com.janginharou.domain.wishlist.repository.WishlistRepository;
+import com.janginharou.global.exception.InvalidRequestException;
+import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -40,14 +42,14 @@ public class WishlistService {
     @Transactional
     public WishlistResponse addToWishlist(Long userId, Long experienceId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
         Experience experience = experienceRepository.findById(experienceId)
-                .orElseThrow(() -> new IllegalArgumentException("체험을 찾을 수 없습니다: " + experienceId));
+                .orElseThrow(() -> new ResourceNotFoundException("Experience", "id", experienceId));
 
         // 이미 존재하는지 확인
         if (wishlistRepository.existsByUserIdAndExperienceId(userId, experienceId)) {
-            throw new IllegalStateException("이미 위시리스트에 추가된 체험입니다.");
+            throw new InvalidRequestException("Experience already in wishlist");
         }
 
         Wishlist wishlist = Wishlist.builder()
@@ -67,7 +69,7 @@ public class WishlistService {
     @Transactional
     public void removeFromWishlist(Long userId, Long experienceId) {
         Wishlist wishlist = wishlistRepository.findByUserIdAndExperienceId(userId, experienceId)
-                .orElseThrow(() -> new IllegalArgumentException("위시리스트에 해당 체험이 없습니다."));
+                .orElseThrow(() -> new ResourceNotFoundException("Wishlist", "experienceId", experienceId));
 
         wishlistRepository.delete(wishlist);
         log.info("위시리스트 제거: userId={}, experienceId={}", userId, experienceId);

@@ -3,12 +3,13 @@ package com.janginharou.domain.wishlist.controller;
 import com.janginharou.domain.wishlist.dto.WishlistResponse;
 import com.janginharou.domain.wishlist.service.WishlistService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,9 +25,10 @@ public class WishlistController {
 
     @GetMapping
     @Operation(summary = "내 위시리스트 조회", description = "현재 로그인한 사용자의 위시리스트 조회")
-    public ResponseEntity<ApiResponse<List<WishlistResponse>>> getMyWishlists(Authentication authentication) {
-        Long userId = Long.parseLong(authentication.getName());
-        List<WishlistResponse> wishlists = wishlistService.getUserWishlists(userId);
+    public ResponseEntity<ApiResponse<List<WishlistResponse>>> getMyWishlists(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        List<WishlistResponse> wishlists = wishlistService.getUserWishlists(currentUser.id());
         return ResponseEntity.ok(ApiResponse.ok(wishlists));
     }
 
@@ -34,10 +36,9 @@ public class WishlistController {
     @Operation(summary = "위시리스트 추가", description = "체험을 위시리스트에 추가")
     public ResponseEntity<ApiResponse<WishlistResponse>> addToWishlist(
             @PathVariable Long experienceId,
-            Authentication authentication
+            @AuthenticationPrincipal AuthenticatedUser currentUser
     ) {
-        Long userId = Long.parseLong(authentication.getName());
-        WishlistResponse response = wishlistService.addToWishlist(userId, experienceId);
+        WishlistResponse response = wishlistService.addToWishlist(currentUser.id(), experienceId);
         return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
     }
 
@@ -45,10 +46,9 @@ public class WishlistController {
     @Operation(summary = "위시리스트 제거", description = "체험을 위시리스트에서 제거")
     public ResponseEntity<ApiResponse<Void>> removeFromWishlist(
             @PathVariable Long experienceId,
-            Authentication authentication
+            @AuthenticationPrincipal AuthenticatedUser currentUser
     ) {
-        Long userId = Long.parseLong(authentication.getName());
-        wishlistService.removeFromWishlist(userId, experienceId);
+        wishlistService.removeFromWishlist(currentUser.id(), experienceId);
         return ResponseEntity.ok(ApiResponse.ok(null));
     }
 
@@ -56,10 +56,9 @@ public class WishlistController {
     @Operation(summary = "위시리스트 존재 여부 확인", description = "특정 체험이 위시리스트에 있는지 확인")
     public ResponseEntity<ApiResponse<Map<String, Boolean>>> checkWishlist(
             @PathVariable Long experienceId,
-            Authentication authentication
+            @AuthenticationPrincipal AuthenticatedUser currentUser
     ) {
-        Long userId = Long.parseLong(authentication.getName());
-        boolean isInWishlist = wishlistService.isInWishlist(userId, experienceId);
+        boolean isInWishlist = wishlistService.isInWishlist(currentUser.id(), experienceId);
         return ResponseEntity.ok(ApiResponse.ok(Map.of("isInWishlist", isInWishlist)));
     }
 }
