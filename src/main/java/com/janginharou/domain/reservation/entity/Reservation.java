@@ -1,6 +1,7 @@
 package com.janginharou.domain.reservation.entity;
 
 import com.janginharou.domain.experience.entity.Experience;
+import com.janginharou.domain.experience.entity.ExperienceSchedule;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.global.common.BaseEntity;
 import jakarta.persistence.*;
@@ -32,7 +33,11 @@ public class Reservation extends BaseEntity {
     @JoinColumn(name = "experience_id", nullable = false)
     private Experience experience;
 
-    @Column(nullable = false)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "schedule_id", nullable = false)
+    private ExperienceSchedule schedule;
+
+    @Column(name = "participants", nullable = false)
     private Integer numberOfParticipants;
 
     @Column(nullable = false)

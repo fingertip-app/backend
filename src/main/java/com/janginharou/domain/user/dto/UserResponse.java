@@ -1,5 +1,6 @@
 package com.janginharou.domain.user.dto;
 
+import com.janginharou.domain.user.entity.UserRole;
 import com.janginharou.domain.user.entity.User;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -17,7 +18,9 @@ public class UserResponse {
     private Long id;
     private String email;
     private String provider;
+    private String providerId;
     private String nickname;
+    private UserRole role;
     private String profileImageUrl;
     private Boolean isActive;
     private LocalDateTime createdAt;
@@ -28,7 +31,9 @@ public class UserResponse {
                 .id(user.getId())
                 .email(user.getEmail())
                 .provider(user.getProvider())
+                .providerId(user.getProviderId())
                 .nickname(user.getNickname())
+                .role(user.getRole())
                 .profileImageUrl(user.getProfileImageUrl())
                 .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())

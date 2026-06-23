@@ -10,6 +10,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.ArrayList;
 
 @Entity
 @Table(name = "experiences")
@@ -68,4 +69,24 @@ public class Experience extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    @ElementCollection
+    @CollectionTable(
+            name = "experience_tags",
+            joinColumns = @JoinColumn(name = "experience_id"),
+            uniqueConstraints = @UniqueConstraint(columnNames = {"experience_id", "tag"})
+    )
+    @Column(name = "tag", nullable = false, length = 100)
+    @Builder.Default
+    private List<String> tags = new ArrayList<>();
+    
+    @OneToMany(mappedBy = "experience", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("displayOrder ASC")
+    @Builder.Default
+    private List<ExperienceImage> images = new ArrayList<>();
+
+    public void addImage(ExperienceImage image) {
+        this.images.add(image);
+        image.setExperience(this);
+    }
 }

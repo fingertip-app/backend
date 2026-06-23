@@ -6,6 +6,7 @@ import com.janginharou.domain.cardnews.service.CardNewsService;
 import com.janginharou.global.common.ApiResponse;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -24,61 +25,48 @@ public class CardNewsController {
     @GetMapping("/{cardNewsId}")
     @Operation(summary = "카드뉴스 조회", description = "카드뉴스 ID로 조회")
     public ResponseEntity<ApiResponse<CardNewsResponse>> getCardNews(@PathVariable Long cardNewsId) {
-        CardNewsResponse response = CardNewsResponse.from(cardNewsService.getCardNewsById(cardNewsId));
-        return ResponseEntity.ok(ApiResponse.ok(response));
+        return ResponseEntity.ok(ApiResponse.ok(cardNewsService.getCardNewsResponseById(cardNewsId)));
     }
 
     @GetMapping("/active")
     @Operation(summary = "활성 카드뉴스 목록", description = "모든 활성 카드뉴스 조회")
     public ResponseEntity<ApiResponse<List<CardNewsResponse>>> getActiveCardNews() {
-        List<CardNewsResponse> responses = cardNewsService.getActiveCardNews()
-                .stream()
-                .map(CardNewsResponse::from)
-                .toList();
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(cardNewsService.getActiveCardNews()));
     }
 
     @GetMapping("/type/{contentType}")
     @Operation(summary = "유형별 카드뉴스", description = "콘텐츠 유형별 카드뉴스 조회 (k_drama, k_pop, k_anime, festival)")
     public ResponseEntity<ApiResponse<List<CardNewsResponse>>> getCardNewsByType(@PathVariable String contentType) {
-        List<CardNewsResponse> responses = cardNewsService.getCardNewsByContentType(contentType)
-                .stream()
-                .map(CardNewsResponse::from)
-                .toList();
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(cardNewsService.getCardNewsByContentType(contentType)));
     }
 
     @GetMapping("/tag/{tag}")
     @Operation(summary = "태그별 카드뉴스", description = "카테고리 태그별 카드뉴스 조회")
     public ResponseEntity<ApiResponse<List<CardNewsResponse>>> getCardNewsByTag(@PathVariable String tag) {
-        List<CardNewsResponse> responses = cardNewsService.getCardNewsByTag(tag)
-                .stream()
-                .map(CardNewsResponse::from)
-                .toList();
-        return ResponseEntity.ok(ApiResponse.ok(responses));
+        return ResponseEntity.ok(ApiResponse.ok(cardNewsService.getCardNewsByTag(tag)));
     }
 
     @PostMapping
     @Operation(summary = "카드뉴스 생성", description = "새로운 카드뉴스 생성 (관리자용)")
-    public ResponseEntity<ApiResponse<CardNewsResponse>> createCardNews(@RequestBody CardNewsRequest request) {
-        // TODO: 관리자 권한 확인 후 카드뉴스 생성
+    public ResponseEntity<ApiResponse<CardNewsResponse>> createCardNews(@Valid @RequestBody CardNewsRequest request) {
+        CardNewsResponse response = cardNewsService.createCardNews(request);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "CardNews created successfully"));
+                .body(ApiResponse.ok(response, "CardNews created successfully"));
     }
 
     @PutMapping("/{cardNewsId}")
     @Operation(summary = "카드뉴스 수정", description = "카드뉴스 수정 (관리자용)")
     public ResponseEntity<ApiResponse<CardNewsResponse>> updateCardNews(
             @PathVariable Long cardNewsId,
-            @RequestBody CardNewsRequest request) {
-        // TODO: 관리자 권한 확인 후 카드뉴스 수정
-        return ResponseEntity.ok(ApiResponse.ok(null, "CardNews updated successfully"));
+            @Valid @RequestBody CardNewsRequest request) {
+        CardNewsResponse response = cardNewsService.updateCardNews(cardNewsId, request);
+        return ResponseEntity.ok(ApiResponse.ok(response, "CardNews updated successfully"));
     }
 
     @DeleteMapping("/{cardNewsId}")
     @Operation(summary = "카드뉴스 삭제", description = "카드뉴스 삭제 (관리자용)")
     public ResponseEntity<ApiResponse<Void>> deleteCardNews(@PathVariable Long cardNewsId) {
-        // TODO: 관리자 권한 확인 후 카드뉴스 삭제
+        cardNewsService.deleteCardNews(cardNewsId);
         return ResponseEntity.ok(ApiResponse.ok(null, "CardNews deleted successfully"));
     }
 }

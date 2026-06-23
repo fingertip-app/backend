@@ -2,8 +2,12 @@ package com.janginharou.domain.notification.controller;
 
 import com.janginharou.domain.notification.dto.NotificationRequest;
 import com.janginharou.domain.notification.dto.NotificationResponse;
+import com.janginharou.domain.notification.entity.Notification;
 import com.janginharou.domain.notification.service.NotificationService;
+import com.janginharou.domain.user.entity.User;
+import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.exception.ResourceNotFoundException;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -20,6 +24,7 @@ import java.util.List;
 public class NotificationController {
 
     private final NotificationService notificationService;
+    private final UserRepository userRepository;
 
     @GetMapping("/{notificationId}")
     @Operation(summary = "알림 조회", description = "알림 ID로 알림 정보 조회")
@@ -58,9 +63,20 @@ public class NotificationController {
     @PostMapping
     @Operation(summary = "알림 생성 및 발송", description = "새로운 알림 생성 및 비동기 발송")
     public ResponseEntity<ApiResponse<NotificationResponse>> createNotification(@RequestBody NotificationRequest request) {
-        // TODO: 알림 생성 및 비동기 발송 처리
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResourceNotFoundException("User", "id", request.getUserId()));
+
+        Notification notification = Notification.builder()
+                .user(user)
+                .title(request.getTitle())
+                .body(request.getBody())
+                .build();
+
+        Notification created = notificationService.createNotification(notification);
+        NotificationResponse response = NotificationResponse.from(created);
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "Notification created and sent successfully"));
+                .body(ApiResponse.ok(response, "Notification created and sent successfully"));
     }
 
     @PutMapping("/{notificationId}/read")
@@ -73,14 +89,14 @@ public class NotificationController {
     @PutMapping("/user/{userId}/read-all")
     @Operation(summary = "모든 알림 읽음 표시", description = "사용자의 모든 미읽은 알림을 읽음으로 표시")
     public ResponseEntity<ApiResponse<Void>> markAllAsRead(@PathVariable Long userId) {
-        // TODO: 사용자의 모든 미읽은 알림을 읽음으로 표시
+        notificationService.markAllAsRead(userId);
         return ResponseEntity.ok(ApiResponse.ok(null, "All notifications marked as read"));
     }
 
     @DeleteMapping("/{notificationId}")
     @Operation(summary = "알림 삭제", description = "알림 삭제")
     public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable Long notificationId) {
-        // TODO: 알림 삭제 처리
+        notificationService.deleteNotification(notificationId);
         return ResponseEntity.ok(ApiResponse.ok(null, "Notification deleted successfully"));
     }
 }

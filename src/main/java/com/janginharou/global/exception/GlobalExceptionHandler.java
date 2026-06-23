@@ -1,6 +1,7 @@
 package com.janginharou.global.exception;
 
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.ForbiddenException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -22,9 +23,24 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
     }
 
+    @ExceptionHandler(ForbiddenException.class)
+    public ResponseEntity<ApiResponse<Void>> handleForbidden(ForbiddenException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+    }
+
     @ExceptionHandler(InvalidRequestException.class)
     public ResponseEntity<ApiResponse<Void>> handleInvalidRequest(InvalidRequestException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
+    }
+
+    @ExceptionHandler(ExternalServiceException.class)
+    public ResponseEntity<ApiResponse<Void>> handleExternalService(ExternalServiceException e) {
+        HttpStatus status = "AI_TIMEOUT".equals(e.getErrorCode())
+                ? HttpStatus.GATEWAY_TIMEOUT
+                : HttpStatus.SERVICE_UNAVAILABLE;
+        return ResponseEntity.status(status)
                 .body(ApiResponse.error(e.getErrorCode(), e.getMessage()));
     }
 

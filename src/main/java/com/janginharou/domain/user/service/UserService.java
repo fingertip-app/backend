@@ -25,6 +25,16 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("User", "email", email));
     }
 
+    @Transactional(readOnly = true)
+    public boolean existsByEmail(String email) {
+        return userRepository.existsByEmail(email);
+    }
+
+    @Transactional(readOnly = true)
+    public boolean existsByNickname(String nickname) {
+        return userRepository.existsByNickname(nickname);
+    }
+
     @Transactional
     public User createUser(User user) {
         // TODO: 회원가입 비즈니스 로직 (중복 검증, 데이터 정규화 등)
@@ -35,6 +45,13 @@ public class UserService {
     public User updateUser(Long userId, User updateData) {
         // TODO: 회원 정보 수정 처리
         User user = getUserById(userId);
+        return user;
+    }
+
+    @Transactional
+    public User updateProfile(Long userId, String nickname, String profileImageUrl, java.util.List<String> preferredCategories) {
+        User user = getUserById(userId);
+        user.updateProfile(nickname, profileImageUrl, preferredCategories);
         return user;
     }
 

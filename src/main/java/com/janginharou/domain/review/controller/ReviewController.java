@@ -4,11 +4,14 @@ import com.janginharou.domain.review.dto.ReviewRequest;
 import com.janginharou.domain.review.dto.ReviewResponse;
 import com.janginharou.domain.review.service.ReviewService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -50,25 +53,30 @@ public class ReviewController {
 
     @PostMapping
     @Operation(summary = "후기 작성", description = "새로운 후기 작성 (예약 완료된 Reservation 기준)")
-    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(@RequestBody ReviewRequest request) {
-        // TODO: 현재 로그인 사용자 ID 추출 후 후기 생성
+    public ResponseEntity<ApiResponse<ReviewResponse>> createReview(
+            @Valid @RequestBody ReviewRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        ReviewResponse response = ReviewResponse.from(reviewService.createReview(currentUser.id(), request));
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "Review created successfully"));
+                .body(ApiResponse.ok(response, "Review created successfully"));
     }
 
     @PutMapping("/{reviewId}")
     @Operation(summary = "후기 수정", description = "후기 수정 (작성자만 가능)")
     public ResponseEntity<ApiResponse<ReviewResponse>> updateReview(
             @PathVariable Long reviewId,
-            @RequestBody ReviewRequest request) {
-        // TODO: 후기 작성자 확인 후 수정 처리
-        return ResponseEntity.ok(ApiResponse.ok(null, "Review updated successfully"));
+            @Valid @RequestBody ReviewRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        ReviewResponse response = ReviewResponse.from(reviewService.updateReview(currentUser.id(), reviewId, request));
+        return ResponseEntity.ok(ApiResponse.ok(response, "Review updated successfully"));
     }
 
     @DeleteMapping("/{reviewId}")
     @Operation(summary = "후기 삭제", description = "후기 삭제 (작성자만 가능)")
-    public ResponseEntity<ApiResponse<Void>> deleteReview(@PathVariable Long reviewId) {
-        // TODO: 후기 작성자 확인 후 삭제 처리
+    public ResponseEntity<ApiResponse<Void>> deleteReview(
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        reviewService.deleteReview(currentUser.id(), reviewId);
         return ResponseEntity.ok(ApiResponse.ok(null, "Review deleted successfully"));
     }
 }

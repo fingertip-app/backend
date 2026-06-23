@@ -33,20 +33,31 @@ logging:
   level:
     root: INFO
     com.janginharou: DEBUG
+
+fastapi:
+  base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
+  internal-api-key: ${INTERNAL_API_KEY:local-internal-key}
+  connect-timeout-ms: 1000
+  read-timeout-ms: 15000
+
 ---
 spring:
   config:
     activate:
       on-profile: local
   datasource:
-    url: jdbc:postgresql://localhost:5432/janginharou
-    username: postgres
-    password: postgres
+    url: ${DB_URL:jdbc:postgresql://localhost:5433/janginharou}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 2
+    baseline-description: existing db schema before Spring migrations
   redis:
     host: localhost
     port: 6379
@@ -64,6 +75,15 @@ spring:
 jwt:
   secret: ${JWT_SECRET:ThisIsAVeryLongSecurityKeyFor256BitEncryptionThatMustBeAtLeast32CharacterLongForHS512}
   expiration: 86400000
+
+supabase:
+  url: ${SUPABASE_URL:}
+  jwt:
+    secret: ${SUPABASE_JWT_SECRET:${JWT_SECRET:ThisIsAVeryLongSecurityKeyFor256BitEncryptionThatMustBeAtLeast32CharacterLongForHS512}}
+
+fastapi:
+  base-url: ${FASTAPI_BASE_URL:http://localhost:8000}
+  internal-api-key: ${INTERNAL_API_KEY:local-internal-key}
 
 server:
   port: 8080
@@ -84,6 +104,10 @@ spring:
     hibernate:
       ddl-auto: validate
     show-sql: false
+  flyway:
+    baseline-on-migrate: true
+    baseline-version: 2
+    baseline-description: existing db schema before Spring migrations
   redis:
     host: ${REDIS_HOST}
     port: ${REDIS_PORT}
@@ -100,6 +124,15 @@ spring:
 jwt:
   secret: ${JWT_SECRET}
   expiration: 86400000
+
+supabase:
+  url: ${SUPABASE_URL}
+  jwt:
+    secret: ${SUPABASE_JWT_SECRET:${JWT_SECRET}}
+
+fastapi:
+  base-url: ${FASTAPI_BASE_URL}
+  internal-api-key: ${INTERNAL_API_KEY}
 
 server:
   port: 8080

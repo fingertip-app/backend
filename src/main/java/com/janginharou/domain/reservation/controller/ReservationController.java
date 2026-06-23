@@ -4,10 +4,16 @@ import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.dto.ReservationResponse;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.service.ReservationService;
+import com.janginharou.domain.user.entity.User;
+import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.config.JwtTokenProvider;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.annotation.Validated;
@@ -15,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/reservations")
 @RequiredArgsConstructor
@@ -22,12 +29,16 @@ import java.util.List;
 public class ReservationController {
 
     private final ReservationService reservationService;
+    private final JwtTokenProvider jwtTokenProvider;
+    private final UserRepository userRepository;
 
     @GetMapping
     @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getReservations(
-            @RequestParam Long userId,
-            @RequestParam(required = false) ReservationStatus status) {
+            @RequestParam(required = false) ReservationStatus status,
+            HttpServletRequest request) {
+        Long userId = getUserIdFromRequest(request);
+
         List<ReservationResponse> responses = (status == null
                 ? reservationService.getReservationsByUserId(userId)
                 : reservationService.getReservationsByUserIdAndStatus(userId, status))
@@ -66,26 +77,66 @@ public class ReservationController {
 
     @PostMapping
     @Operation(summary = "예약 생성", description = "새로운 예약 생성")
-    public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(@RequestBody ReservationRequest request) {
-        // TODO: 현재 로그인 사용자 ID 추출 후 예약 생성
+    public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(
+            @Valid @RequestBody ReservationRequest request,
+            HttpServletRequest servletRequest) {
+        log.info("🔔 [컨트롤러] POST /reservations 요청 받음 - request: {}", request);
+
+        Long userId = getUserIdFromRequest(servletRequest);
+        log.info("✅ [컨트롤러] JWT에서 userId 추출 완료 - userId: {}", userId);
+
+        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(userId, request));
+        log.info("✅ [컨트롤러] 예약 생성 완료 - reservationId: {}", response.getId());
+
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "Reservation created successfully"));
+                .body(ApiResponse.ok(response, "Reservation created successfully"));
+    }
+
+    /**
+     * Request에서 userId 추출
+     * JWT 토큰의 subject(Supabase UUID)로 User를 찾아 DB의 id를 반환
+     */
+    private Long getUserIdFromRequest(HttpServletRequest request) {
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            throw new IllegalArgumentException("인증 토큰이 없습니다.");
+        }
+
+        String token = authHeader.substring(7);
+        String supabaseUuid = jwtTokenProvider.getUserIdFromToken(token);
+
+        // Supabase UUID(providerId)로 User 조회
+        User user = userRepository.findByProviderId(supabaseUuid)
+            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
+        return user.getId();
     }
 
     @PostMapping("/{reservationId}/approve")
     @Operation(summary = "예약 승인", description = "예약 승인 (장인용)")
-    public ResponseEntity<ApiResponse<ReservationResponse>> approveReservation(@PathVariable Long reservationId) {
-        // TODO: 장인 권한 확인 후 예약 승인 (PENDING → APPROVED)
-        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation approved successfully"));
+    public ResponseEntity<ApiResponse<ReservationResponse>> approveReservation(
+            @PathVariable Long reservationId,
+            @RequestParam(required = false) Long artisanId) {
+        ReservationResponse response = ReservationResponse.from(
+                artisanId == null
+                        ? reservationService.approveReservation(reservationId)
+                        : reservationService.approveReservation(reservationId, artisanId)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation approved successfully"));
     }
 
     @PostMapping("/{reservationId}/reject")
     @Operation(summary = "예약 거절", description = "예약 거절 (장인용)")
     public ResponseEntity<ApiResponse<ReservationResponse>> rejectReservation(
             @PathVariable Long reservationId,
+            @RequestParam(required = false) Long artisanId,
             @RequestParam String rejectionReason) {
-        // TODO: 장인 권한 확인 후 예약 거절 (PENDING → REJECTED)
-        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation rejected successfully"));
+        ReservationResponse response = ReservationResponse.from(
+                artisanId == null
+                        ? reservationService.rejectReservation(reservationId, rejectionReason)
+                        : reservationService.rejectReservation(reservationId, artisanId, rejectionReason)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation rejected successfully"));
     }
 
     @PostMapping("/{reservationId}/payment")
@@ -93,15 +144,15 @@ public class ReservationController {
     public ResponseEntity<ApiResponse<ReservationResponse>> processPayment(
             @PathVariable Long reservationId,
             @RequestParam String paymentKey) {
-        // TODO: 토스페이먼츠 웹훅 검증 후 결제 완료 처리 (APPROVED → PAID)
-        return ResponseEntity.ok(ApiResponse.ok(null, "Payment processed successfully"));
+        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, paymentKey));
+        return ResponseEntity.ok(ApiResponse.ok(response, "Payment processed successfully"));
     }
 
     @PostMapping("/{reservationId}/confirm")
     @Operation(summary = "예약 최종 확정", description = "예약 최종 확정")
     public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(@PathVariable Long reservationId) {
-        // TODO: 결제 완료 후 최종 확정 (PAID → CONFIRMED)
-        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation confirmed successfully"));
+        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId));
+        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation confirmed successfully"));
     }
 
     @PostMapping("/{reservationId}/cancel")
@@ -109,7 +160,9 @@ public class ReservationController {
     public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(
             @PathVariable Long reservationId,
             @RequestParam(required = false) String cancellationReason) {
-        // TODO: 예약 취소 처리 및 환불 처리
-        return ResponseEntity.ok(ApiResponse.ok(null, "Reservation cancelled successfully"));
+        ReservationResponse response = ReservationResponse.from(
+                reservationService.cancelReservation(reservationId, cancellationReason)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation cancelled successfully"));
     }
 }

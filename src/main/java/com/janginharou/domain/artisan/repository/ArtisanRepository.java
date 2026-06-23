@@ -1,6 +1,7 @@
 package com.janginharou.domain.artisan.repository;
 
 import com.janginharou.domain.artisan.entity.Artisan;
+import com.janginharou.domain.artisan.entity.ArtisanVerificationStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -15,6 +16,8 @@ public interface ArtisanRepository extends JpaRepository<Artisan, Long> {
     List<Artisan> findByIsVerifiedTrue();
 
     List<Artisan> findByHeritageCategory(String heritageCategory);
+
+    List<Artisan> findByCertificationStatus(ArtisanVerificationStatus certificationStatus);
 
     boolean existsByUserId(Long userId);
 }

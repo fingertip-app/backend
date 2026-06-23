@@ -48,4 +48,16 @@ public class CardNews {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void update(String title, String contentType, String imageUrl, String aiExplanation, List<String> categoryTags) {
+        this.title = title;
+        this.contentType = contentType;
+        this.imageUrl = imageUrl;
+        this.aiExplanation = aiExplanation;
+        this.categoryTags = categoryTags;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
+    }
 }

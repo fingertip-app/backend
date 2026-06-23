@@ -8,6 +8,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
 @Table(name = "artisans")
 @Getter
@@ -42,6 +44,13 @@ public class Artisan extends BaseEntity {
     @Column(columnDefinition = "TEXT")
     private String introVideoUrl;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    @Builder.Default
+    private ArtisanVerificationStatus certificationStatus = ArtisanVerificationStatus.PENDING;
+
+    private LocalDateTime verifiedAt;
+
     @Column(nullable = false)
     @Builder.Default
     private Boolean isVerified = false;
@@ -49,4 +58,16 @@ public class Artisan extends BaseEntity {
     @Column(nullable = false)
     @Builder.Default
     private Boolean isActive = true;
+
+    public void approve() {
+        this.certificationStatus = ArtisanVerificationStatus.APPROVED;
+        this.isVerified = true;
+        this.verifiedAt = LocalDateTime.now();
+    }
+
+    public void reject() {
+        this.certificationStatus = ArtisanVerificationStatus.REJECTED;
+        this.isVerified = false;
+        this.verifiedAt = null;
+    }
 }

@@ -49,6 +49,12 @@ public class Review {
     @Column(columnDefinition = "TEXT")
     private String newLearnings;
 
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
+    @Column(columnDefinition = "TEXT")
+    private String contentEn;
+
     @ElementCollection
     @CollectionTable(name = "review_image_urls", joinColumns = @JoinColumn(name = "review_id"))
     @Column(name = "image_url", columnDefinition = "TEXT")
@@ -65,4 +71,20 @@ public class Review {
     @CreatedDate
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
+
+    public void applySummary(String summary, BigDecimal sentimentScore, List<String> keywords) {
+        this.summary = summary;
+        this.sentimentScore = sentimentScore;
+        this.keywords = keywords;
+    }
+
+    public void update(Integer rating, String content, String newLearnings, List<String> imageUrls) {
+        this.rating = rating;
+        this.content = content;
+        this.newLearnings = newLearnings;
+        this.imageUrls = imageUrls;
+        this.summary = null;
+        this.sentimentScore = null;
+        this.keywords = null;
+    }
 }

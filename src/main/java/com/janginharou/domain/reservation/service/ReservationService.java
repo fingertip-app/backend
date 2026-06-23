@@ -1,16 +1,21 @@
 package com.janginharou.domain.reservation.service;
 
 import com.janginharou.domain.experience.entity.Experience;
+import com.janginharou.domain.experience.entity.ExperienceSchedule;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
+import com.janginharou.domain.experience.repository.ExperienceScheduleRepository;
 import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
+import com.janginharou.domain.reservation.event.ReservationStatusChangedEvent;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
@@ -28,6 +34,8 @@ public class ReservationService {
     private final ReservationRepository reservationRepository;
     private final UserRepository userRepository;
     private final ExperienceRepository experienceRepository;
+    private final ExperienceScheduleRepository experienceScheduleRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final Set<ReservationStatus> ACTIVE_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -59,38 +67,67 @@ public class ReservationService {
 
     @Transactional
     public Reservation createReservation(Long userId, ReservationRequest request) {
+        log.info("🔔 [예약 생성] 시작 - userId: {}, request: {}", userId, request);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
-        Experience experience = experienceRepository.findById(request.getExperienceId())
-                .orElseThrow(() -> new ResourceNotFoundException("Experience", "id", request.getExperienceId()));
+        log.info("✅ [예약 생성] 사용자 조회 성공 - user: {}", user.getNickname());
 
-        validateReservableExperience(experience);
-        validateDuplicateReservation(userId, experience.getId());
-        validateCapacity(experience, request.getNumberOfParticipants());
+        ExperienceSchedule schedule = experienceScheduleRepository.findByIdForUpdate(request.getScheduleId())
+                .orElseThrow(() -> new ResourceNotFoundException("ExperienceSchedule", "id", request.getScheduleId()));
+        log.info("✅ [예약 생성] 스케줄 조회 성공 - scheduleId: {}, scheduledAt: {}", schedule.getId(), schedule.getScheduledAt());
+
+        Experience experience = schedule.getExperience();
+        log.info("✅ [예약 생성] 체험 조회 성공 - experienceId: {}, title: {}", experience.getId(), experience.getTitle());
+
+        validateScheduleMatchesExperience(schedule, request.getExperienceId());
+        log.info("✅ [예약 생성] 체험-스케줄 매칭 검증 통과");
+
+        validateReservableSchedule(schedule);
+        log.info("✅ [예약 생성] 예약 가능 스케줄 검증 통과");
+
+        validateDuplicateReservation(userId, schedule.getId());
+        log.info("✅ [예약 생성] 중복 예약 검증 통과");
+
+        validateCapacity(schedule, request.getNumberOfParticipants());
+        log.info("✅ [예약 생성] 정원 검증 통과");
 
         BigDecimal totalPrice = experience.getPrice().multiply(BigDecimal.valueOf(request.getNumberOfParticipants()));
-        LocalDateTime reservedDateTime = request.getReservedDateTime() != null
-                ? request.getReservedDateTime()
-                : experience.getStartDateTime();
 
         Reservation reservation = Reservation.builder()
                 .user(user)
                 .experience(experience)
+                .schedule(schedule)
                 .numberOfParticipants(request.getNumberOfParticipants())
                 .totalPrice(totalPrice)
                 .status(ReservationStatus.PENDING)
-                .reservedDateTime(reservedDateTime)
+                .reservedDateTime(schedule.getScheduledAt())
                 .requestMessage(request.getRequestMessage())
                 .isNotificationSent(false)
                 .build();
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+        log.info("✅ [예약 생성] 저장 완료 - reservationId: {}, status: {}, totalPrice: {}", saved.getId(), saved.getStatus(), saved.getTotalPrice());
+        return saved;
     }
 
     @Transactional
     public Reservation approveReservation(Long reservationId) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.approve();
+        publishStatusChangeEvent(reservation, oldStatus, null);
+        return reservation;
+    }
+
+    @Transactional
+    public Reservation approveReservation(Long reservationId, Long artisanId) {
+        Reservation reservation = getReservationById(reservationId);
+        validateArtisanOwnsReservation(reservation, artisanId);
+        validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
+        reservation.approve();
+        publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
 
@@ -98,7 +135,20 @@ public class ReservationService {
     public Reservation rejectReservation(Long reservationId, String rejectionReason) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.reject(rejectionReason);
+        publishStatusChangeEvent(reservation, oldStatus, rejectionReason);
+        return reservation;
+    }
+
+    @Transactional
+    public Reservation rejectReservation(Long reservationId, Long artisanId, String rejectionReason) {
+        Reservation reservation = getReservationById(reservationId);
+        validateArtisanOwnsReservation(reservation, artisanId);
+        validateStatus(reservation, ReservationStatus.PENDING);
+        ReservationStatus oldStatus = reservation.getStatus();
+        reservation.reject(rejectionReason);
+        publishStatusChangeEvent(reservation, oldStatus, rejectionReason);
         return reservation;
     }
 
@@ -106,7 +156,9 @@ public class ReservationService {
     public Reservation processPayment(Long reservationId, String paymentKey) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.APPROVED);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.pay(paymentKey, createPaymentOrderId(reservation));
+        publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
 
@@ -114,7 +166,9 @@ public class ReservationService {
     public Reservation confirmReservation(Long reservationId) {
         Reservation reservation = getReservationById(reservationId);
         validateStatus(reservation, ReservationStatus.PAID);
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.confirm();
+        publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
 
@@ -126,7 +180,9 @@ public class ReservationService {
                 || reservation.getStatus() == ReservationStatus.CANCELLED) {
             throw new InvalidRequestException("Cannot cancel reservation in status: " + reservation.getStatus());
         }
+        ReservationStatus oldStatus = reservation.getStatus();
         reservation.cancel(cancellationReason);
+        publishStatusChangeEvent(reservation, oldStatus, cancellationReason);
         return reservation;
     }
 
@@ -140,33 +196,65 @@ public class ReservationService {
         return reservationRepository.findByStatus(ReservationStatus.CONFIRMED);
     }
 
-    private void validateReservableExperience(Experience experience) {
+    private void validateScheduleMatchesExperience(ExperienceSchedule schedule, Long experienceId) {
+        if (!schedule.getExperience().getId().equals(experienceId)) {
+            throw new InvalidRequestException("Schedule does not belong to experience");
+        }
+    }
+
+    private void validateReservableSchedule(ExperienceSchedule schedule) {
+        Experience experience = schedule.getExperience();
         if (!Boolean.TRUE.equals(experience.getIsActive())) {
             throw new InvalidRequestException("Experience is not active");
         }
-        if (experience.getStartDateTime().isBefore(LocalDateTime.now())) {
-            throw new InvalidRequestException("Experience has already started");
+        if (!Boolean.TRUE.equals(schedule.getIsActive())) {
+            throw new InvalidRequestException("Schedule is not active");
+        }
+        if (schedule.getScheduledAt().isBefore(LocalDateTime.now())) {
+            throw new InvalidRequestException("Schedule has already passed");
         }
     }
 
-    private void validateDuplicateReservation(Long userId, Long experienceId) {
-        if (reservationRepository.existsByUserIdAndExperienceIdAndStatusIn(
+    private void validateDuplicateReservation(Long userId, Long scheduleId) {
+        if (reservationRepository.existsByUserIdAndScheduleIdAndStatusIn(
                 userId,
-                experienceId,
+                scheduleId,
                 List.copyOf(ACTIVE_STATUSES)
         )) {
-            throw new InvalidRequestException("Duplicate active reservation exists");
+            throw new InvalidRequestException("Duplicate active reservation exists for this schedule");
         }
     }
 
-    private void validateCapacity(Experience experience, Integer requestedParticipants) {
-        Integer currentParticipants = reservationRepository.sumParticipantsByExperienceIdAndStatusIn(
-                experience.getId(),
+    private void validateCapacity(ExperienceSchedule schedule, Integer requestedParticipants) {
+        Integer currentParticipants = reservationRepository.sumParticipantsByScheduleIdAndStatusIn(
+                schedule.getId(),
                 List.copyOf(ACTIVE_STATUSES)
         );
-        if (currentParticipants + requestedParticipants > experience.getMaxParticipants()) {
+        if (currentParticipants + requestedParticipants > schedule.getAvailableSlots()) {
             throw new InvalidRequestException("Booking slot is unavailable");
         }
+    }
+
+    private void validateArtisanOwnsReservation(Reservation reservation, Long artisanId) {
+        if (artisanId == null) {
+            return;
+        }
+        if (!reservation.getExperience().getArtisan().getId().equals(artisanId)) {
+            throw new InvalidRequestException("Reservation does not belong to artisan");
+        }
+    }
+
+    private void publishStatusChangeEvent(Reservation reservation, ReservationStatus oldStatus, String reason) {
+        ReservationStatusChangedEvent event = ReservationStatusChangedEvent.of(
+                reservation.getId(),
+                reservation.getUser(), // User 객체 직접 전달로 리스너에서 DB 조회 불필요
+                reservation.getExperience().getId(),
+                reservation.getExperience().getTitle(),
+                oldStatus,
+                reservation.getStatus(),
+                reason
+        );
+        eventPublisher.publishEvent(event);
     }
 
     private void validateStatus(Reservation reservation, ReservationStatus expectedStatus) {

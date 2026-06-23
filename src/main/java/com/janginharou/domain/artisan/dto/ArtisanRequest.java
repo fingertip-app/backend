@@ -13,13 +13,13 @@ import lombok.NoArgsConstructor;
 public class ArtisanRequest {
 
     @NotBlank
-    private String intangibleHeritageName;
+    private String name;
 
     @NotBlank
-    private String intangibleHeritageType;
+    private String heritageCategory;
 
-    private String certificationImageUrl;
+    private String certificationNumber;
     private String bio;
     private String profileImageUrl;
-    private Integer yearsOfExperience;
+    private String introVideoUrl;
 }

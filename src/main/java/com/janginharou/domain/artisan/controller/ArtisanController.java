@@ -4,11 +4,13 @@ import com.janginharou.domain.artisan.dto.ArtisanRequest;
 import com.janginharou.domain.artisan.dto.ArtisanResponse;
 import com.janginharou.domain.artisan.service.ArtisanService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -20,6 +22,25 @@ import java.util.List;
 public class ArtisanController {
 
     private final ArtisanService artisanService;
+
+    @GetMapping("/me")
+    @Operation(summary = "내 장인 정보 조회", description = "인증된 사용자의 장인 신청/승인 상태 조회")
+    public ResponseEntity<ApiResponse<ArtisanResponse>> getMyArtisan(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        ArtisanResponse response = ArtisanResponse.from(artisanService.getArtisanByUserId(currentUser.id()));
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PostMapping("/apply")
+    @Operation(summary = "장인 가입 신청", description = "인증된 사용자가 장인 인증 신청")
+    public ResponseEntity<ApiResponse<ArtisanResponse>> applyArtisan(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestBody ArtisanRequest request
+    ) {
+        ArtisanResponse response = ArtisanResponse.from(artisanService.apply(currentUser.id(), request));
+        return ResponseEntity.status(HttpStatus.CREATED).body(ApiResponse.ok(response));
+    }
 
     @GetMapping("/{artisanId}")
     @Operation(summary = "장인 조회", description = "장인 ID로 장인 정보 조회")
@@ -48,9 +69,8 @@ public class ArtisanController {
     @PostMapping
     @Operation(summary = "장인 등록", description = "새로운 장인 등록")
     public ResponseEntity<ApiResponse<ArtisanResponse>> createArtisan(@RequestBody ArtisanRequest request) {
-        // TODO: 장인 가입 신청 처리
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.ok(null, "Artisan application submitted successfully"));
+                .body(ApiResponse.ok(null, "Use /artisans/apply with Supabase authentication"));
     }
 
     @PutMapping("/{artisanId}")
@@ -65,8 +85,8 @@ public class ArtisanController {
     @PostMapping("/{artisanId}/approve")
     @Operation(summary = "장인 인증 승인", description = "장인 인증 승인 (관리자용)")
     public ResponseEntity<ApiResponse<ArtisanResponse>> approveArtisan(@PathVariable Long artisanId) {
-        // TODO: 관리자 권한 확인 후 장인 승인 처리
-        return ResponseEntity.ok(ApiResponse.ok(null, "Artisan approved successfully"));
+        ArtisanResponse response = ArtisanResponse.from(artisanService.approveArtisan(artisanId));
+        return ResponseEntity.ok(ApiResponse.ok(response, "Artisan approved successfully"));
     }
 
     @PostMapping("/{artisanId}/reject")
@@ -74,7 +94,7 @@ public class ArtisanController {
     public ResponseEntity<ApiResponse<Void>> rejectArtisan(
             @PathVariable Long artisanId,
             @RequestParam String rejectionReason) {
-        // TODO: 관리자 권한 확인 후 장인 거절 처리
+        ArtisanResponse response = ArtisanResponse.from(artisanService.rejectArtisan(artisanId));
         return ResponseEntity.ok(ApiResponse.ok(null, "Artisan rejected successfully"));
     }
 }

@@ -25,14 +25,22 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByUserIdAndExperienceIdAndStatusIn(Long userId, Long experienceId, List<ReservationStatus> statuses);
 
+    Optional<Reservation> findFirstByUserIdAndExperienceIdAndStatusInOrderByCreatedAtDesc(
+            Long userId,
+            Long experienceId,
+            List<ReservationStatus> statuses
+    );
+
+    boolean existsByUserIdAndScheduleIdAndStatusIn(Long userId, Long scheduleId, List<ReservationStatus> statuses);
+
     @Query("""
             select coalesce(sum(r.numberOfParticipants), 0)
             from Reservation r
-            where r.experience.id = :experienceId
+            where r.schedule.id = :scheduleId
               and r.status in :statuses
             """)
-    Integer sumParticipantsByExperienceIdAndStatusIn(
-            @Param("experienceId") Long experienceId,
+    Integer sumParticipantsByScheduleIdAndStatusIn(
+            @Param("scheduleId") Long scheduleId,
             @Param("statuses") List<ReservationStatus> statuses
     );
 
