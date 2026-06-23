@@ -14,6 +14,7 @@ import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +26,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
@@ -65,16 +67,30 @@ public class ReservationService {
 
     @Transactional
     public Reservation createReservation(Long userId, ReservationRequest request) {
+        log.info("🔔 [예약 생성] 시작 - userId: {}, request: {}", userId, request);
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
+        log.info("✅ [예약 생성] 사용자 조회 성공 - user: {}", user.getName());
+
         ExperienceSchedule schedule = experienceScheduleRepository.findByIdForUpdate(request.getScheduleId())
                 .orElseThrow(() -> new ResourceNotFoundException("ExperienceSchedule", "id", request.getScheduleId()));
+        log.info("✅ [예약 생성] 스케줄 조회 성공 - scheduleId: {}, scheduledAt: {}", schedule.getId(), schedule.getScheduledAt());
+
         Experience experience = schedule.getExperience();
+        log.info("✅ [예약 생성] 체험 조회 성공 - experienceId: {}, title: {}", experience.getId(), experience.getTitle());
 
         validateScheduleMatchesExperience(schedule, request.getExperienceId());
+        log.info("✅ [예약 생성] 체험-스케줄 매칭 검증 통과");
+
         validateReservableSchedule(schedule);
+        log.info("✅ [예약 생성] 예약 가능 스케줄 검증 통과");
+
         validateDuplicateReservation(userId, schedule.getId());
+        log.info("✅ [예약 생성] 중복 예약 검증 통과");
+
         validateCapacity(schedule, request.getNumberOfParticipants());
+        log.info("✅ [예약 생성] 정원 검증 통과");
 
         BigDecimal totalPrice = experience.getPrice().multiply(BigDecimal.valueOf(request.getNumberOfParticipants()));
 
@@ -89,7 +105,9 @@ public class ReservationService {
                 .requestMessage(request.getRequestMessage())
                 .isNotificationSent(false)
                 .build();
-        return reservationRepository.save(reservation);
+        Reservation saved = reservationRepository.save(reservation);
+        log.info("✅ [예약 생성] 저장 완료 - reservationId: {}, status: {}, totalPrice: {}", saved.getId(), saved.getStatus(), saved.getTotalPrice());
+        return saved;
     }
 
     @Transactional
