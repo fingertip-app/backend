@@ -1,19 +1,23 @@
 package com.janginharou.domain.reservation.service;
 
+import com.janginharou.domain.experience.dto.ExperienceWithReviewsDto;
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.entity.ExperienceSchedule;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.experience.repository.ExperienceScheduleRepository;
 import com.janginharou.domain.reservation.dto.ReservationRequest;
+import com.janginharou.domain.reservation.dto.ReservationResponse;
 import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.event.ReservationStatusChangedEvent;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
+import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -25,6 +29,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReservationService {
@@ -33,6 +38,7 @@ public class ReservationService {
     private final UserRepository userRepository;
     private final ExperienceRepository experienceRepository;
     private final ExperienceScheduleRepository experienceScheduleRepository;
+    private final ReviewRepository reviewRepository;
     private final ApplicationEventPublisher eventPublisher;
 
     private static final Set<ReservationStatus> ACTIVE_STATUSES = EnumSet.of(
@@ -249,5 +255,25 @@ public class ReservationService {
 
     private String createPaymentOrderId(Reservation reservation) {
         return "reservation-" + reservation.getId() + "-" + UUID.randomUUID();
+    }
+
+    /**
+     * ReservationResponse 생성
+     * @param reservation 예약 객체
+     * @param includeExperience true면 체험 정보 포함 (평점/리뷰 포함)
+     */
+    @Transactional(readOnly = true)
+    public ReservationResponse buildReservationResponse(Reservation reservation, boolean includeExperience) {
+        if (!includeExperience) {
+            return ReservationResponse.from(reservation);
+        }
+
+        // 체험 정보 포함: 평점과 리뷰 수 계산
+        Experience experience = reservation.getExperience();
+        Double rating = reviewRepository.getAverageRating(experience.getId());
+        Long reviewCount = reviewRepository.getReviewCount(experience.getId());
+
+        ExperienceWithReviewsDto experienceDto = ExperienceWithReviewsDto.from(experience, rating, reviewCount);
+        return ReservationResponse.from(reservation, experienceDto);
     }
 }

@@ -25,32 +25,43 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @GetMapping
-    @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회")
+    @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getReservations(
             @RequestParam Long userId,
-            @RequestParam(required = false) ReservationStatus status) {
+            @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
         List<ReservationResponse> responses = (status == null
                 ? reservationService.getReservationsByUserId(userId)
                 : reservationService.getReservationsByUserIdAndStatus(userId, status))
                 .stream()
-                .map(ReservationResponse::from)
+                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
     @GetMapping("/{reservationId}")
-    @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회")
-    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.getReservationById(reservationId));
+    @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(
+            @PathVariable Long reservationId,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
+        ReservationResponse response = reservationService.buildReservationResponse(
+                reservationService.getReservationById(reservationId),
+                includeExperience
+        );
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/user/{userId}")
-    @Operation(summary = "사용자 예약 목록", description = "사용자의 모든 예약 조회")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserReservations(@PathVariable Long userId) {
+    @Operation(summary = "사용자 예약 목록", description = "사용자의 모든 예약 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserReservations(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
         List<ReservationResponse> responses = reservationService.getReservationsByUserId(userId)
                 .stream()
-                .map(ReservationResponse::from)
+                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
