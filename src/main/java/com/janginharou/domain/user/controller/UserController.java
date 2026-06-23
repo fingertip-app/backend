@@ -52,7 +52,9 @@ public class UserController {
     ) {
         UserResponse response = UserResponse.from(userService.updateProfile(
                 currentUser.id(),
+                request.getName(),
                 request.getNickname(),
+                request.getPhone(),
                 request.getProfileImageUrl(),
                 request.getPreferredCategories()
         ));

@@ -72,7 +72,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         );
 
         User user = userRepository.findByProviderId(supabaseId)
-                .orElseGet(() -> userRepository.save(User.supabaseUser(supabaseId, email, nickname)));
+                .orElseGet(() -> {
+                    String name = claims.getString("name");
+                    return userRepository.save(User.supabaseUser(supabaseId, email, nickname, name != null ? name : nickname));
+                });
 
         AuthenticatedUser principal = new AuthenticatedUser(
                 user.getId(),

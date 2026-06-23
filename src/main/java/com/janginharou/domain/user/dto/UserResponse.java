@@ -8,6 +8,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter
 @NoArgsConstructor
@@ -19,9 +20,12 @@ public class UserResponse {
     private String email;
     private String provider;
     private String providerId;
+    private String name;
     private String nickname;
+    private String phone;
     private UserRole role;
     private String profileImageUrl;
+    private List<String> preferredCategories;
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
@@ -32,9 +36,12 @@ public class UserResponse {
                 .email(user.getEmail())
                 .provider(user.getProvider())
                 .providerId(user.getProviderId())
+                .name(user.getName())
                 .nickname(user.getNickname())
+                .phone(user.getPhone())
                 .role(user.getRole())
                 .profileImageUrl(user.getProfileImageUrl())
+                .preferredCategories(user.getPreferredCategories())
                 .isActive(user.getIsActive())
                 .createdAt(user.getCreatedAt())
                 .updatedAt(user.getUpdatedAt())

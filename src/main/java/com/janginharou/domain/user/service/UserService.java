@@ -49,9 +49,9 @@ public class UserService {
     }
 
     @Transactional
-    public User updateProfile(Long userId, String nickname, String profileImageUrl, java.util.List<String> preferredCategories) {
+    public User updateProfile(Long userId, String name, String nickname, String phone, String profileImageUrl, java.util.List<String> preferredCategories) {
         User user = getUserById(userId);
-        user.updateProfile(nickname, profileImageUrl, preferredCategories);
+        user.updateProfile(name, nickname, phone, profileImageUrl, preferredCategories);
         return user;
     }
 
