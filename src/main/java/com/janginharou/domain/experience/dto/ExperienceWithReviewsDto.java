@@ -24,7 +24,6 @@ public class ExperienceWithReviewsDto {
     private String locationAddress;
     private BigDecimal price;
     private Integer durationMinutes;
-    private String imageUrl;
     private String artisanName;
     private Double rating;
     private Long reviewCount;
@@ -41,7 +40,6 @@ public class ExperienceWithReviewsDto {
                 .locationAddress(experience.getLocationAddress())
                 .price(experience.getPrice())
                 .durationMinutes(experience.getDurationMinutes())
-                .imageUrl(experience.getImageUrl())
                 .artisanName(experience.getArtisan() != null ? experience.getArtisan().getName() : null)
                 .rating(rating != null ? rating : 0.0)
                 .reviewCount(reviewCount != null ? reviewCount : 0L)
