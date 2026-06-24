@@ -62,8 +62,8 @@ public class UserService {
 
     @Transactional
     public void deleteUser(Long userId) {
-        // TODO: 회원 탈퇴 처리 (soft delete 또는 hard delete)
-        userRepository.deleteById(userId);
+        User user = getUserById(userId);
+        user.deactivate();
     }
 
     @Transactional(readOnly = true)
