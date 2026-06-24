@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -43,6 +45,13 @@ public class UserService {
     @Transactional
     public User createUser(User user) {
         return userRepository.save(user);
+    }
+
+    @Transactional
+    public User updateProfile(Long userId, String name, String nickname, String phone, String profileImageUrl, List<String> preferredCategories) {
+        User user = getUserById(userId);
+        user.updateProfile(name, nickname, phone, profileImageUrl, preferredCategories);
+        return user;
     }
 
     @Transactional

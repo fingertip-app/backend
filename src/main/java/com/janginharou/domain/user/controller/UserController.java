@@ -110,13 +110,4 @@ public class UserController {
         userService.deleteUser(userId);
         return ResponseEntity.ok(ApiResponse.ok(null, "User deleted successfully"));
     }
-
-    @GetMapping("/me/stats")
-    @Operation(summary = "내 통계 조회", description = "인증된 사용자의 마이페이지 통계 조회 (위시리스트, 리뷰, 쿠폰, 포인트)")
-    public ResponseEntity<ApiResponse<UserStatsResponse>> getMyStats(
-            @AuthenticationPrincipal AuthenticatedUser currentUser
-    ) {
-        UserStatsResponse stats = userService.getUserStats(currentUser.id());
-        return ResponseEntity.ok(ApiResponse.ok(stats));
-    }
 }
