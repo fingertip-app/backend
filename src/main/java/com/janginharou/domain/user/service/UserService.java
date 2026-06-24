@@ -1,7 +1,10 @@
 package com.janginharou.domain.user.service;
 
+import com.janginharou.domain.review.repository.ReviewRepository;
+import com.janginharou.domain.user.dto.UserStatsResponse;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
+import com.janginharou.domain.wishlist.repository.WishlistRepository;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final WishlistRepository wishlistRepository;
+    private final ReviewRepository reviewRepository;
 
     @Transactional(readOnly = true)
     public User getUserById(Long userId) {
@@ -49,10 +54,18 @@ public class UserService {
     }
 
     @Transactional
-    public User updateProfile(Long userId, String nickname, String profileImageUrl, java.util.List<String> preferredCategories) {
+    public User updateProfile(Long userId, String name, String nickname, String phone, String profileImageUrl, java.util.List<String> preferredCategories) {
         User user = getUserById(userId);
-        user.updateProfile(nickname, profileImageUrl, preferredCategories);
+        user.updateProfile(name, nickname, phone, profileImageUrl, preferredCategories);
         return user;
+    }
+
+    @Transactional(readOnly = true)
+    public UserStatsResponse getUserStats(Long userId) {
+        return UserStatsResponse.builder()
+                .wishlistCount(wishlistRepository.countByUserId(userId))
+                .reviewCount(reviewRepository.countByUserId(userId))
+                .build();
     }
 
     @Transactional

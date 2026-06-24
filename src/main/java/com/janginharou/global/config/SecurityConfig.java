@@ -55,18 +55,23 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         .requestMatchers("/health", "/public/**").permitAll()
+                        .requestMatchers("/uploads/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/users/check/email", "/users/check/nickname").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/ai/**").permitAll()
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/card-news/**").authenticated()
-                        .requestMatchers("/card-news/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.POST, "/v1/ai/recommendations").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/banners/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/artisans/recommended", "/artisans/nearby", "/artisans/verified", "/artisans/{artisanId}").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/experiences/active", "/experiences/upcoming", "/experiences/*", "/card-news/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/reviews/experience/**").permitAll()
+                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        .requestMatchers("/card-news/**").hasRole("ADMIN")
                         .requestMatchers("/artisans/*/approve", "/artisans/*/reject").hasRole("ADMIN")
                         .requestMatchers("/artisans/apply", "/artisans/me").hasAnyRole("USER", "ARTISAN", "ADMIN")
-                        .requestMatchers(HttpMethod.GET, "/experiences", "/experiences/*", "/experiences/active", "/experiences/upcoming").authenticated()
+                        .requestMatchers(HttpMethod.GET, "/experiences").authenticated()
                         .requestMatchers("/experiences/**").hasAnyRole("ARTISAN", "ADMIN")
                         .requestMatchers("/reservations/**", "/Reservations/**").authenticated()
+                        .requestMatchers("/wishlists/**").authenticated()
+                        .requestMatchers("/files/**").authenticated()
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -83,7 +88,7 @@ public class SecurityConfig {
                 "http://localhost:8081",
                 "http://localhost:19006"
         ));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
         configuration.setAllowCredentials(true);
 

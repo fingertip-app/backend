@@ -4,19 +4,16 @@ import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.dto.ReservationResponse;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.service.ReservationService;
-import com.janginharou.domain.user.entity.User;
-import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.common.ApiResponse;
-import com.janginharou.global.config.JwtTokenProvider;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -29,38 +26,45 @@ import java.util.List;
 public class ReservationController {
 
     private final ReservationService reservationService;
-    private final JwtTokenProvider jwtTokenProvider;
-    private final UserRepository userRepository;
 
     @GetMapping
-    @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회")
+    @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회 (JWT 토큰에서 userId 자동 추출)\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getReservations(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(required = false) ReservationStatus status,
-            HttpServletRequest request) {
-        Long userId = getUserIdFromRequest(request);
-
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
         List<ReservationResponse> responses = (status == null
-                ? reservationService.getReservationsByUserId(userId)
-                : reservationService.getReservationsByUserIdAndStatus(userId, status))
+                ? reservationService.getReservationsByUserId(currentUser.id())
+                : reservationService.getReservationsByUserIdAndStatus(currentUser.id(), status))
                 .stream()
-                .map(ReservationResponse::from)
+                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
     @GetMapping("/{reservationId}")
-    @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회")
-    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.getReservationById(reservationId));
+    @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(
+            @PathVariable Long reservationId,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
+        ReservationResponse response = reservationService.buildReservationResponse(
+                reservationService.getReservationById(reservationId),
+                includeExperience
+        );
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/user/{userId}")
-    @Operation(summary = "사용자 예약 목록", description = "사용자의 모든 예약 조회")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserReservations(@PathVariable Long userId) {
+    @Operation(summary = "사용자 예약 목록", description = "사용자의 모든 예약 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserReservations(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
         List<ReservationResponse> responses = reservationService.getReservationsByUserId(userId)
                 .stream()
-                .map(ReservationResponse::from)
+                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
                 .toList();
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
@@ -78,38 +82,15 @@ public class ReservationController {
     @PostMapping
     @Operation(summary = "예약 생성", description = "새로운 예약 생성")
     public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(
-            @Valid @RequestBody ReservationRequest request,
-            HttpServletRequest servletRequest) {
-        log.info("🔔 [컨트롤러] POST /reservations 요청 받음 - request: {}", request);
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @Valid @RequestBody ReservationRequest request) {
+        log.info("🔔 [컨트롤러] POST /reservations 요청 받음 - userId: {}, request: {}", currentUser.id(), request);
 
-        Long userId = getUserIdFromRequest(servletRequest);
-        log.info("✅ [컨트롤러] JWT에서 userId 추출 완료 - userId: {}", userId);
-
-        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(userId, request));
+        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(currentUser.id(), request));
         log.info("✅ [컨트롤러] 예약 생성 완료 - reservationId: {}", response.getId());
 
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(response, "Reservation created successfully"));
-    }
-
-    /**
-     * Request에서 userId 추출
-     * JWT 토큰의 subject(Supabase UUID)로 User를 찾아 DB의 id를 반환
-     */
-    private Long getUserIdFromRequest(HttpServletRequest request) {
-        String authHeader = request.getHeader("Authorization");
-        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            throw new IllegalArgumentException("인증 토큰이 없습니다.");
-        }
-
-        String token = authHeader.substring(7);
-        String supabaseUuid = jwtTokenProvider.getUserIdFromToken(token);
-
-        // Supabase UUID(providerId)로 User 조회
-        User user = userRepository.findByProviderId(supabaseUuid)
-            .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
-
-        return user.getId();
     }
 
     @PostMapping("/{reservationId}/approve")

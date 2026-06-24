@@ -40,6 +40,12 @@ fastapi:
   connect-timeout-ms: 1000
   read-timeout-ms: 15000
 
+file:
+  upload:
+    dir: ${FILE_UPLOAD_DIR:uploads}
+    base-url: ${FILE_UPLOAD_BASE_URL:http://localhost:8080/uploads}
+    max-size: 10485760  # 10MB
+
 ---
 spring:
   config:
