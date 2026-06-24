@@ -61,6 +61,7 @@ public class SecurityConfig {
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/card-news/**").authenticated()
                         .requestMatchers("/card-news/**").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/artisans/recommended", "/artisans/nearby", "/artisans/verified", "/artisans/{artisanId}").permitAll()
                         .requestMatchers("/artisans/*/approve", "/artisans/*/reject").hasRole("ADMIN")
                         .requestMatchers("/artisans/apply", "/artisans/me").hasAnyRole("USER", "ARTISAN", "ADMIN")
                         .requestMatchers(HttpMethod.GET, "/experiences", "/experiences/*", "/experiences/active", "/experiences/upcoming").authenticated()
