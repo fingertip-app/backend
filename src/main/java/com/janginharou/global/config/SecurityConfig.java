@@ -60,7 +60,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/users/check/email", "/users/check/nickname").permitAll()
                         .requestMatchers(HttpMethod.POST, "/v1/ai/recommendations").permitAll()
                         .requestMatchers(HttpMethod.GET, "/banners/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/artisans/recommended", "/artisans/nearby").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/artisans/recommended", "/artisans/nearby", "/artisans/verified", "/artisans/{artisanId}").permitAll()
                         .requestMatchers(HttpMethod.GET, "/experiences/active", "/experiences/upcoming", "/experiences/*", "/card-news/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/reviews/experience/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
