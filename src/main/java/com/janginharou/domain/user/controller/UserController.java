@@ -62,6 +62,15 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
+    @GetMapping("/me/stats")
+    @Operation(summary = "내 활동 통계 조회", description = "찜한 체험 수, 작성한 후기 수 등 마이페이지 통계 조회")
+    public ResponseEntity<ApiResponse<UserStatsResponse>> getMyStats(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        UserStatsResponse response = userService.getUserStats(currentUser.id());
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
     @GetMapping("/{userId}")
     @Operation(summary = "사용자 조회", description = "사용자 ID로 사용자 정보 조회")
     public ResponseEntity<ApiResponse<UserResponse>> getUser(@PathVariable Long userId) {
