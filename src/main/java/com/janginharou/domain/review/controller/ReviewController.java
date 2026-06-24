@@ -2,6 +2,8 @@ package com.janginharou.domain.review.controller;
 
 import com.janginharou.domain.review.dto.ReviewRequest;
 import com.janginharou.domain.review.dto.ReviewResponse;
+import com.janginharou.domain.review.dto.ReviewSummaryRequest;
+import com.janginharou.domain.review.dto.ReviewSummaryResponse;
 import com.janginharou.domain.review.service.ReviewService;
 import com.janginharou.global.common.ApiResponse;
 import com.janginharou.global.security.AuthenticatedUser;
@@ -78,5 +80,13 @@ public class ReviewController {
             @AuthenticationPrincipal AuthenticatedUser currentUser) {
         reviewService.deleteReview(currentUser.id(), reviewId);
         return ResponseEntity.ok(ApiResponse.ok(null, "Review deleted successfully"));
+    }
+
+    @PostMapping("/summarize")
+    @Operation(summary = "후기 AI 요약", description = "후기 내용을 AI로 요약 (장인용)")
+    public ResponseEntity<ApiResponse<ReviewSummaryResponse>> summarizeReview(
+            @Valid @RequestBody ReviewSummaryRequest request) {
+        ReviewSummaryResponse response = reviewService.summarizeReview(request);
+        return ResponseEntity.ok(ApiResponse.ok(response));
     }
 }
