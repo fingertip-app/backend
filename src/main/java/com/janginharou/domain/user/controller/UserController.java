@@ -2,6 +2,7 @@ package com.janginharou.domain.user.controller;
 
 import com.janginharou.domain.user.dto.UserRequest;
 import com.janginharou.domain.user.dto.UserResponse;
+import com.janginharou.domain.user.dto.UserStatsResponse;
 import com.janginharou.domain.user.service.UserService;
 import com.janginharou.global.common.ApiResponse;
 import com.janginharou.global.security.AuthenticatedUser;
@@ -58,6 +59,15 @@ public class UserController {
                 request.getProfileImageUrl(),
                 request.getPreferredCategories()
         ));
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/me/stats")
+    @Operation(summary = "내 활동 통계 조회", description = "찜한 체험 수, 작성한 후기 수 등 마이페이지 통계 조회")
+    public ResponseEntity<ApiResponse<UserStatsResponse>> getMyStats(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        UserStatsResponse response = userService.getUserStats(currentUser.id());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
