@@ -11,6 +11,17 @@ import lombok.NoArgsConstructor;
 @Builder
 public class UserStatsResponse {
 
-    private long wishlistCount;
-    private long reviewCount;
+    private Long wishlistCount;
+    private Long reviewCount;
+    private Long couponCount;
+    private Long pointBalance;
+
+    public static UserStatsResponse of(Long wishlistCount, Long reviewCount, Long couponCount, Long pointBalance) {
+        return UserStatsResponse.builder()
+                .wishlistCount(wishlistCount)
+                .reviewCount(reviewCount)
+                .couponCount(couponCount)
+                .pointBalance(pointBalance)
+                .build();
+    }
 }

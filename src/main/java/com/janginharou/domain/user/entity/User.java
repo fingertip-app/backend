@@ -61,13 +61,14 @@ public class User extends BaseEntity {
     @Builder.Default
     private Boolean isActive = true;
 
-    public static User supabaseUser(String supabaseId, String email, String nickname, String name) {
+    public static User supabaseUser(String supabaseId, String email, String nickname, String name, String phone) {
         return User.builder()
                 .email(email)
                 .provider("supabase")
                 .providerId(supabaseId)
                 .nickname(nickname)
                 .name(name)
+                .phone(phone)
                 .role(UserRole.USER)
                 .isActive(true)
                 .build();
@@ -93,5 +94,9 @@ public class User extends BaseEntity {
 
     public void changeRole(UserRole role) {
         this.role = role;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
     }
 }

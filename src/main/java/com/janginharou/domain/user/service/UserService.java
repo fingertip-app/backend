@@ -10,6 +10,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 public class UserService {
@@ -42,35 +44,26 @@ public class UserService {
 
     @Transactional
     public User createUser(User user) {
-        // TODO: 회원가입 비즈니스 로직 (중복 검증, 데이터 정규화 등)
         return userRepository.save(user);
     }
 
     @Transactional
-    public User updateUser(Long userId, User updateData) {
-        // TODO: 회원 정보 수정 처리
-        User user = getUserById(userId);
-        return user;
-    }
-
-    @Transactional
-    public User updateProfile(Long userId, String name, String nickname, String phone, String profileImageUrl, java.util.List<String> preferredCategories) {
+    public User updateProfile(Long userId, String name, String nickname, String phone, String profileImageUrl, List<String> preferredCategories) {
         User user = getUserById(userId);
         user.updateProfile(name, nickname, phone, profileImageUrl, preferredCategories);
         return user;
     }
 
-    @Transactional(readOnly = true)
-    public UserStatsResponse getUserStats(Long userId) {
-        return UserStatsResponse.builder()
-                .wishlistCount(wishlistRepository.countByUserId(userId))
-                .reviewCount(reviewRepository.countByUserId(userId))
-                .build();
-    }
-
     @Transactional
     public void deleteUser(Long userId) {
-        // TODO: 회원 탈퇴 처리 (soft delete 또는 hard delete)
-        userRepository.deleteById(userId);
+        User user = getUserById(userId);
+        userRepository.delete(user);
+    }
+
+    @Transactional(readOnly = true)
+    public UserStatsResponse getUserStats(Long userId) {
+        long wishlistCount = wishlistRepository.countByUserId(userId);
+        long reviewCount = reviewRepository.countByUserId(userId);
+        return UserStatsResponse.of(wishlistCount, reviewCount, 0L, 0L);
     }
 }

@@ -28,7 +28,7 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @GetMapping
-    @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회 (JWT 토큰에서 userId 자동 추출)\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    @Operation(summary = "내 예약 목록", description = "인증된 사용자의 예약 목록 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)\n- status: 예약 상태 필터 (선택사항)")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getReservations(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(required = false) ReservationStatus status,

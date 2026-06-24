@@ -95,10 +95,19 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(null, "User updated successfully"));
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "회원 탈퇴", description = "인증된 사용자의 계정 탈퇴 (soft delete)")
+    public ResponseEntity<ApiResponse<Void>> deleteMe(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        userService.deleteUser(currentUser.id());
+        return ResponseEntity.ok(ApiResponse.ok(null, "User account deactivated successfully"));
+    }
+
     @DeleteMapping("/{userId}")
-    @Operation(summary = "사용자 삭제", description = "사용자 삭제 (탈퇴)")
+    @Operation(summary = "사용자 삭제 (관리자용)", description = "관리자가 사용자를 삭제")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long userId) {
-        // TODO: 사용자 탈퇴 처리
+        userService.deleteUser(userId);
         return ResponseEntity.ok(ApiResponse.ok(null, "User deleted successfully"));
     }
 }
