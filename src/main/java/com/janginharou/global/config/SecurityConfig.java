@@ -82,11 +82,14 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList(
-                "http://localhost:3000",
-                "http://localhost:5173",
-                "http://localhost:8081",
-                "http://localhost:19006"
+        // 팀원들이 각자 PC에서 Expo 웹(`expo start --web`)을 띄워서 테스트하므로,
+        // localhost와 사내 LAN IP(192.168.*, 172.16~31.*, 10.*)의 모든 포트를 허용합니다.
+        configuration.setAllowedOriginPatterns(Arrays.asList(
+                "http://localhost:*",
+                "http://127.0.0.1:*",
+                "http://192.168.*.*:*",
+                "http://172.*.*.*:*",
+                "http://10.*.*.*:*"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
