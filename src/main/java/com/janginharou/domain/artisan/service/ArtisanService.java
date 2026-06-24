@@ -21,6 +21,7 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Random;
 
 @Service
 @RequiredArgsConstructor
@@ -45,6 +46,23 @@ public class ArtisanService {
 
     @Transactional(readOnly = true)
     public List<Artisan> getVerifiedArtisans() {
+        return artisanRepository.findByIsVerifiedTrue();
+    }
+
+    @Transactional(readOnly = true)
+    public Artisan getRecommendedArtisan() {
+        List<Artisan> verifiedArtisans = artisanRepository.findByIsVerifiedTrue();
+        if (verifiedArtisans.isEmpty()) {
+            throw new ResourceNotFoundException("No verified artisans available");
+        }
+        int randomIndex = new Random().nextInt(verifiedArtisans.size());
+        return verifiedArtisans.get(randomIndex);
+    }
+
+    @Transactional(readOnly = true)
+    public List<Artisan> getNearbyArtisans(Double lat, Double lng, Double radiusKm) {
+        // TODO: 실제 거리 계산 로직 구현 (Haversine 공식 또는 PostGIS 사용)
+        // 현재는 모든 인증된 장인을 반환
         return artisanRepository.findByIsVerifiedTrue();
     }
 
