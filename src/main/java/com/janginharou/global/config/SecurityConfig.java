@@ -57,7 +57,7 @@ public class SecurityConfig {
                         .requestMatchers("/health", "/public/**").permitAll()
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/users/check/email", "/users/check/nickname").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/v1/ai/recommendations").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/ai/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/card-news/**").authenticated()
                         .requestMatchers("/card-news/**").hasRole("ADMIN")
