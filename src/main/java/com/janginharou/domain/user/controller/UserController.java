@@ -2,6 +2,7 @@ package com.janginharou.domain.user.controller;
 
 import com.janginharou.domain.user.dto.UserRequest;
 import com.janginharou.domain.user.dto.UserResponse;
+import com.janginharou.domain.user.dto.UserStatsResponse;
 import com.janginharou.domain.user.service.UserService;
 import com.janginharou.global.common.ApiResponse;
 import com.janginharou.global.security.AuthenticatedUser;
@@ -90,5 +91,14 @@ public class UserController {
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long userId) {
         // TODO: 사용자 탈퇴 처리
         return ResponseEntity.ok(ApiResponse.ok(null, "User deleted successfully"));
+    }
+
+    @GetMapping("/me/stats")
+    @Operation(summary = "내 통계 조회", description = "인증된 사용자의 마이페이지 통계 조회 (위시리스트, 리뷰, 쿠폰, 포인트)")
+    public ResponseEntity<ApiResponse<UserStatsResponse>> getMyStats(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        UserStatsResponse stats = userService.getUserStats(currentUser.id());
+        return ResponseEntity.ok(ApiResponse.ok(stats));
     }
 }

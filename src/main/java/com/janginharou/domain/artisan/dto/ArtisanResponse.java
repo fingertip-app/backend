@@ -29,6 +29,9 @@ public class ArtisanResponse {
     private Boolean isActive;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String address;
+    private Double latitude;
+    private Double longitude;
 
     public static ArtisanResponse from(Artisan artisan) {
         return ArtisanResponse.builder()
@@ -46,6 +49,9 @@ public class ArtisanResponse {
                 .isActive(artisan.getIsActive())
                 .createdAt(artisan.getCreatedAt())
                 .updatedAt(artisan.getUpdatedAt())
+                .address(artisan.getAddress())
+                .latitude(artisan.getLatitude())
+                .longitude(artisan.getLongitude())
                 .build();
     }
 }

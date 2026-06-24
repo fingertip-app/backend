@@ -2,6 +2,7 @@ package com.janginharou.domain.artisan.controller;
 
 import com.janginharou.domain.artisan.dto.ArtisanRequest;
 import com.janginharou.domain.artisan.dto.ArtisanResponse;
+import com.janginharou.domain.artisan.dto.ArtisanStatsResponse;
 import com.janginharou.domain.artisan.service.ArtisanService;
 import com.janginharou.global.common.ApiResponse;
 import com.janginharou.global.security.AuthenticatedUser;
@@ -66,6 +67,34 @@ public class ArtisanController {
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
+    @GetMapping("/recommended")
+    @Operation(summary = "추천 장인 조회", description = "AI 추천 장인 목록 (TODO: 추천 알고리즘 구현)")
+    public ResponseEntity<ApiResponse<List<ArtisanResponse>>> getRecommendedArtisans() {
+        // TODO: 추천 알고리즘 구현 (Python 서비스 연동)
+        List<ArtisanResponse> responses = artisanService.getVerifiedArtisans()
+                .stream()
+                .limit(5)
+                .map(ArtisanResponse::from)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok(responses));
+    }
+
+    @GetMapping("/nearby")
+    @Operation(summary = "근처 장인 조회", description = "위치 기반 근처 장인 목록")
+    public ResponseEntity<ApiResponse<List<ArtisanResponse>>> getNearbyArtisans(
+            @RequestParam Double lat,
+            @RequestParam Double lng,
+            @RequestParam(defaultValue = "10") Double radius
+    ) {
+        // TODO: 위치 기반 검색 구현
+        List<ArtisanResponse> responses = artisanService.getVerifiedArtisans()
+                .stream()
+                .limit(10)
+                .map(ArtisanResponse::from)
+                .toList();
+        return ResponseEntity.ok(ApiResponse.ok(responses));
+    }
+
     @PostMapping
     @Operation(summary = "장인 등록", description = "새로운 장인 등록")
     public ResponseEntity<ApiResponse<ArtisanResponse>> createArtisan(@RequestBody ArtisanRequest request) {
@@ -96,5 +125,16 @@ public class ArtisanController {
             @RequestParam String rejectionReason) {
         ArtisanResponse response = ArtisanResponse.from(artisanService.rejectArtisan(artisanId));
         return ResponseEntity.ok(ApiResponse.ok(null, "Artisan rejected successfully"));
+    }
+
+    @GetMapping("/me/stats")
+    @Operation(summary = "내 장인 통계 조회", description = "인증된 장인의 마이페이지 통계 조회 (신규 예약, 운영 클래스, 이달의 수익)")
+    public ResponseEntity<ApiResponse<ArtisanStatsResponse>> getMyStats(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        // 현재 사용자의 장인 정보 조회
+        Long artisanId = artisanService.getArtisanByUserId(currentUser.id()).getId();
+        ArtisanStatsResponse stats = artisanService.getArtisanStats(artisanId);
+        return ResponseEntity.ok(ApiResponse.ok(stats));
     }
 }

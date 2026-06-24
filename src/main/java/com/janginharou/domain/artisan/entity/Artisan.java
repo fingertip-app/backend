@@ -59,6 +59,13 @@ public class Artisan extends BaseEntity {
     @Builder.Default
     private Boolean isActive = true;
 
+    @Column(columnDefinition = "TEXT")
+    private String address;
+
+    private Double latitude;
+
+    private Double longitude;
+
     public void approve() {
         this.certificationStatus = ArtisanVerificationStatus.APPROVED;
         this.isVerified = true;

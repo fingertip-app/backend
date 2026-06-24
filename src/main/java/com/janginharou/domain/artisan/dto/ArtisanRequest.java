@@ -22,4 +22,7 @@ public class ArtisanRequest {
     private String bio;
     private String profileImageUrl;
     private String introVideoUrl;
+    private String address;
+    private Double latitude;
+    private Double longitude;
 }

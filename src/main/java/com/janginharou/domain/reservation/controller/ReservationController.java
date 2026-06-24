@@ -5,12 +5,14 @@ import com.janginharou.domain.reservation.dto.ReservationResponse;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.service.ReservationService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
@@ -25,15 +27,15 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @GetMapping
-    @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    @Operation(summary = "내 예약 목록", description = "인증된 사용자의 예약 목록 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)\n- status: 예약 상태 필터 (선택사항)")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getReservations(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @RequestParam(required = false) ReservationStatus status,
             @RequestParam(required = false) String include) {
         boolean includeExperience = "experience".equals(include);
         List<ReservationResponse> responses = (status == null
-                ? reservationService.getReservationsByUserId(userId)
-                : reservationService.getReservationsByUserIdAndStatus(userId, status))
+                ? reservationService.getReservationsByUserId(currentUser.id())
+                : reservationService.getReservationsByUserIdAndStatus(currentUser.id(), status))
                 .stream()
                 .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
                 .toList();

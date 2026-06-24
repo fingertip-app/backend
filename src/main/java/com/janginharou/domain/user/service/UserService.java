@@ -1,7 +1,10 @@
 package com.janginharou.domain.user.service;
 
+import com.janginharou.domain.user.dto.UserStatsResponse;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
+import com.janginharou.domain.wishlist.repository.WishlistRepository;
+import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -12,6 +15,8 @@ import org.springframework.transaction.annotation.Transactional;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final WishlistRepository wishlistRepository;
+    private final ReviewRepository reviewRepository;
 
     @Transactional(readOnly = true)
     public User getUserById(Long userId) {
@@ -59,5 +64,25 @@ public class UserService {
     public void deleteUser(Long userId) {
         // TODO: 회원 탈퇴 처리 (soft delete 또는 hard delete)
         userRepository.deleteById(userId);
+    }
+
+    @Transactional(readOnly = true)
+    public UserStatsResponse getUserStats(Long userId) {
+        // 사용자 존재 여부 확인
+        getUserById(userId);
+
+        // 위시리스트 개수
+        Long wishlistCount = (long) wishlistRepository.findByUserId(userId).size();
+
+        // 리뷰 개수
+        Long reviewCount = (long) reviewRepository.findByUserId(userId).size();
+
+        // 쿠폰 개수 (TODO: 쿠폰 기능 구현 시 추가)
+        Long couponCount = 0L;
+
+        // 포인트 잔액 (TODO: 포인트 기능 구현 시 추가)
+        Long pointBalance = 0L;
+
+        return UserStatsResponse.of(wishlistCount, reviewCount, couponCount, pointBalance);
     }
 }
