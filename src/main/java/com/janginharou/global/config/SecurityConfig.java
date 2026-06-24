@@ -62,6 +62,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/banners/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/artisans/recommended", "/artisans/nearby").permitAll()
                         .requestMatchers(HttpMethod.GET, "/experiences/active", "/experiences/upcoming", "/experiences/*", "/card-news/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/reviews/experience/**").permitAll()
                         .requestMatchers("/admin/**").hasRole("ADMIN")
                         .requestMatchers("/card-news/**").hasRole("ADMIN")
                         .requestMatchers("/artisans/*/approve", "/artisans/*/reject").hasRole("ADMIN")

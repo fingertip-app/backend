@@ -13,7 +13,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -81,9 +80,9 @@ public class ReservationController {
     @PostMapping
     @Operation(summary = "예약 생성", description = "새로운 예약 생성")
     public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody ReservationRequest request) {
-        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(userId, request));
+        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(currentUser.id(), request));
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(response, "Reservation created successfully"));
     }
