@@ -16,6 +16,8 @@ public interface ExperienceScheduleRepository extends JpaRepository<ExperienceSc
 
     List<ExperienceSchedule> findByExperienceIdAndIsActiveTrue(Long experienceId);
 
+    void deleteByExperienceId(Long experienceId);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from ExperienceSchedule s join fetch s.experience where s.id = :id")
     Optional<ExperienceSchedule> findByIdForUpdate(@Param("id") Long id);

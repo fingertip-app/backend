@@ -17,6 +17,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     List<Reservation> findByExperienceId(Long experienceId);
 
+    void deleteByExperienceId(Long experienceId);
+
     List<Reservation> findByStatus(ReservationStatus status);
 
     List<Reservation> findByUserIdAndStatus(Long userId, ReservationStatus status);

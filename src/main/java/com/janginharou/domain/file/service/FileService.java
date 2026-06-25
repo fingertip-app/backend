@@ -22,7 +22,7 @@ public class FileService {
     @Value("${file.upload.dir:uploads}")
     private String uploadDir;
 
-    @Value("${file.upload.base-url:http://localhost:8080/uploads}")
+    @Value("${file.upload.base-url:http://localhost:8080/api/uploads}")
     private String baseUrl;
 
     private static final List<String> ALLOWED_EXTENSIONS = Arrays.asList("jpg", "jpeg", "png", "gif", "webp");
