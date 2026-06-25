@@ -58,4 +58,12 @@ public interface ExperienceRepository extends JpaRepository<Experience, Long> {
         ) DESC, e.id ASC
         """)
     List<Experience> findByTagsContainingAny(@Param("tags") List<String> tags);
+
+    @Query("""
+        SELECT DISTINCT e
+        FROM Experience e
+        LEFT JOIN FETCH e.images
+        WHERE e.id IN :ids
+        """)
+    List<Experience> findAllByIdWithImages(@Param("ids") List<Long> ids);
 }
