@@ -328,21 +328,21 @@ public class ReservationService {
                 .toList();
 
         // 리뷰 통계 한 번에 조회
-        java.util.Map<Long, java.util.Map<String, Object>> reviewStatsMap =
+        java.util.Map<Long, ReviewRepository.ReviewStats> reviewStatsMap =
                 reviewRepository.getReviewStatsByExperienceIds(experienceIds)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        map -> ((Number) map.get("experienceId")).longValue(),
-                        map -> map
+                        ReviewRepository.ReviewStats::getExperienceId,
+                        stats -> stats
                 ));
 
         // DTO 변환
         return reservations.stream()
                 .map(reservation -> {
                     Experience experience = reservation.getExperience();
-                    java.util.Map<String, Object> stats = reviewStatsMap.get(experience.getId());
-                    Double rating = stats != null ? (Double) stats.get("avgRating") : 0.0;
-                    Long reviewCount = stats != null ? ((Number) stats.get("reviewCount")).longValue() : 0L;
+                    ReviewRepository.ReviewStats stats = reviewStatsMap.get(experience.getId());
+                    Double rating = stats != null ? stats.getAvgRating() : 0.0;
+                    Long reviewCount = stats != null ? stats.getReviewCount() : 0L;
 
                     ExperienceWithReviewsDto experienceDto = ExperienceWithReviewsDto.from(experience, rating, reviewCount);
                     return ReservationResponse.from(reservation, experienceDto);
