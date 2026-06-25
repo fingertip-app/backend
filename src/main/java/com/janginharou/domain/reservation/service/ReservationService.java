@@ -41,6 +41,7 @@ public class ReservationService {
     private final ExperienceScheduleRepository experienceScheduleRepository;
     private final ReviewRepository reviewRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final com.janginharou.domain.qr.service.QrCodeService qrCodeService;
 
     private static final Set<ReservationStatus> ACTIVE_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -167,7 +168,22 @@ public class ReservationService {
         validateUserOwnsReservation(reservation, userId);
         validateStatus(reservation, ReservationStatus.APPROVED);
         ReservationStatus oldStatus = reservation.getStatus();
+
+        // 결제 상태 변경
         reservation.pay(paymentKey, createPaymentOrderId(reservation));
+
+        // QR 코드 생성 (실패해도 결제는 완료 상태 유지)
+        try {
+            if (reservation.getQrCode() == null) {
+                String qrToken = qrCodeService.generateQrToken(reservationId);
+                reservation.setQrCode(qrToken);
+                log.info("QR code generated for reservation: {}", reservationId);
+            }
+        } catch (Exception e) {
+            // QR 생성 실패 로깅, 결제는 완료 상태 유지 (재생성 API로 복구 가능)
+            log.error("Failed to generate QR code for reservation: {}, can be regenerated later", reservationId, e);
+        }
+
         publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
@@ -179,6 +195,15 @@ public class ReservationService {
         validateStatus(reservation, ReservationStatus.PAID);
         ReservationStatus oldStatus = reservation.getStatus();
         reservation.confirm();
+
+        // QR 코드는 PAID 시점에 이미 생성됨
+        // CONFIRMED는 선택적 단계 (필요 시 사용, QR 재생성 가능)
+        if (reservation.getQrCode() == null) {
+            log.warn("QR code missing for paid reservation: {}, regenerating", reservationId);
+            String qrToken = qrCodeService.generateQrToken(reservationId);
+            reservation.setQrCode(qrToken);
+        }
+
         publishStatusChangeEvent(reservation, oldStatus, null);
         return reservation;
     }
@@ -194,6 +219,13 @@ public class ReservationService {
         }
         ReservationStatus oldStatus = reservation.getStatus();
         reservation.cancel(cancellationReason);
+
+        // QR 코드 무효화
+        if (reservation.getQrCode() != null) {
+            reservation.setQrCode(null);
+            log.info("QR code invalidated for cancelled reservation: {}", reservationId);
+        }
+
         publishStatusChangeEvent(reservation, oldStatus, cancellationReason);
         return reservation;
     }
