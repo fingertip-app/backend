@@ -40,6 +40,10 @@ fastapi:
   connect-timeout-ms: 1000
   read-timeout-ms: 15000
 
+app:
+  timezone: Asia/Seoul
+  qr:
+    secret-key: ${QR_SECRET_KEY:janginharou-local-qr-secret-key-change-in-production}
 file:
   upload:
     dir: ${FILE_UPLOAD_DIR:uploads}
@@ -145,6 +149,11 @@ supabase:
 fastapi:
   base-url: ${FASTAPI_BASE_URL}
   internal-api-key: ${INTERNAL_API_KEY}
+
+app:
+  timezone: Asia/Seoul
+  qr:
+    secret-key: ${QR_SECRET_KEY}
 
 server:
   port: 8080

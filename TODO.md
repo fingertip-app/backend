@@ -16,7 +16,7 @@
 
 ### 5/26 - 5/31: 계약 동결과 기반 정리
 
-- [ ] [공통/영진] 외부 API 경로, 오류 포맷, 인증 방식, Spring-FastAPI 내부 요청/응답 계약 확정
+- [x] [공통/영진] 외부 API 경로, 오류 포맷, 인증 방식, Spring-FastAPI 내부 요청/응답 계약 확정
 - [ ] [공통/지현] 예약·결제 상태값과 전이 권한 표 확정
 - [ ] [공통] 장인 파트너 신청 API 계약 확장
   - [x] MVP 임시 계약: `POST /artisans/apply`는 `name`, 단일 `heritageCategory`, 통합 `bio` 중심으로 수신
@@ -34,13 +34,13 @@
 
 ### 6/1 - 6/7: FastAPI 연동 안정화와 테스트 기준
 
-- [ ] [영진] FastAPI 502/timeout 재시도 정책 구현
-  - [ ] 502, connection reset, read timeout별 retry 여부 구분
-  - [ ] 최대 재시도 횟수와 backoff 값 설정화
-  - [ ] retry 후 최종 실패 시 프론트로 내려갈 오류 포맷 고정
+- [x] [영진] FastAPI 502/timeout 재시도 정책 구현
+  - [x] 502, connection reset, read timeout별 retry 여부 구분
+  - [x] 최대 재시도 횟수와 backoff 값 설정화
+  - [x] retry 후 최종 실패 시 프론트로 내려갈 오류 포맷 고정
 - [ ] [영진] Controller/Service 단위 테스트 기준과 공통 fixture 정의
-  - [ ] AI client mock fixture 작성
-  - [ ] timeout/fallback/error mapping 테스트 작성
+  - [x] AI client mock fixture 작성
+  - [x] timeout/fallback/error mapping 테스트 작성
   - [ ] 테스트 네이밍과 Given-When-Then 기준 정리
 - [x] [지현] JWT 필터와 역할 기반 접근 제어 구현: user, artisan, admin
   - [x] 사용자/장인/관리자 권한별 접근 가능 API 정리
@@ -48,10 +48,10 @@
 - [ ] [지현] 사용자 로그인/프로필, 장인 신청/승인, 체험 목록/상세 API 구현
   - [x] 로그인/프로필 기본 API
   - [x] 장인 신청/관리자 승인 API
-  - [ ] 체험 목록/상세 조회 API
-- [ ] [지현] 체험 일정 및 예약 가능 인원 모델/마이그레이션 구현
-  - [ ] schedule/time slot 모델 확정
-  - [ ] 예약 가능 인원 차감 기준 정리
+  - [x] 체험 목록/상세 조회 API
+- [x] [지현] 체험 일정 및 예약 가능 인원 모델/마이그레이션 구현
+  - [x] schedule/time slot 모델 확정
+  - [x] 예약 가능 인원 차감 기준 정리
 
 완료 기준: 인증된 사용자가 체험 목록과 상세를 조회하고, 관리자가 장인을 승인할 수 있다.
 
@@ -62,22 +62,22 @@
   - [x] 카드뉴스 기반 문화 설명 요청과 취향 기반 추천 요청 분리 결정
   - [x] 프론트 연동 검증용 `POST /v1/ai/recommendations` 공개 허용
   - [x] Expo web 개발 origin CORS 허용 추가
-  - [ ] FastAPI explain 응답을 Spring DTO로 변환
-  - [ ] 출처, 매칭 키워드, 추천 카테고리 필드 노출
-  - [ ] FastAPI 응답의 `matchingKeywords`, `recommendedCategories`를 체험 조회 조건으로 변환
-  - [ ] AI 실패 시 fallback/error response 처리
+  - [x] FastAPI explain 응답을 Spring DTO로 변환
+  - [x] 출처, 매칭 키워드, 추천 카테고리 필드 노출
+  - [x] FastAPI 응답의 `matchingKeywords`, `recommendedCategories`를 체험 조회 조건으로 변환
+  - [x] AI 실패 시 fallback/error response 처리
   - [ ] 로그인 토큰 연동 완료 후 AI 추천 API 인증 필수로 재전환
 - [ ] [공통] 관련 체험 매칭 방식 구현
   - [x] `Experience.category` 단일 필드가 아니라 태그 기반 매칭으로 결정
-  - [ ] DB 담당: Experience 태그 저장 방식, migration, seed/admin 입력 방식 결정
-  - [ ] 영진: tag 기반 매칭 쿼리 연결
-  - [ ] 결정 결과를 FastAPI `recommendedCategories` 응답과 맞춤
+  - [x] DB 담당: Experience 태그 저장 방식, migration, seed/admin 입력 방식 결정
+  - [x] 영진: tag 기반 매칭 쿼리 연결
+  - [x] 결정 결과를 FastAPI `recommendedCategories` 응답과 맞춤
 - [ ] [지현] 예약 생성, 목록, 장인 승인/거절 API와 동시 재고 검증 구현
-  - [ ] 예약 생성 시 일정/정원 검증
+  - [x] 예약 생성 시 일정/정원 검증
   - [x] 장인 승인/거절 상태 전이 검증
   - [ ] 중복 예약과 동시 요청 테스트 작성
 - [ ] [지현] 카드뉴스 조회/관리 API와 관련 체험 연결 구현
-  - [ ] 카드뉴스 목록/상세 API
+  - [x] 카드뉴스 목록/상세 API
   - [ ] 관리자 카드뉴스 생성/수정/삭제 API
   - [ ] 카드뉴스에서 문화 설명/관련 체험으로 이동할 식별자 제공
 - [ ] [공통] 프론트 연동용 API 예시 응답과 에러 사례 제공
