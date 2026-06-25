@@ -83,8 +83,16 @@ public class RecommendationService {
                     .toList()
                 : List.<FastApiRecommendationRequest.ConversationMessage>of();
 
+        // freeText가 null이면 interests와 companionType으로 기본값 생성
+        String freeText = request.getFreeText();
+        if (freeText == null || freeText.isBlank()) {
+            freeText = String.format("%s와 함께 %s 체험을 찾고 있습니다",
+                    getCompanionDisplayName(request.getCompanionType()),
+                    request.getInterests().isEmpty() ? "전통 공예" : String.join(", ", request.getInterests()));
+        }
+
         return new FastApiRecommendationRequest(
-                request.getFreeText(),
+                freeText,
                 request.getCompanionType().name(),
                 request.getHeadCount(),
                 request.getInterests(),
@@ -93,6 +101,18 @@ public class RecommendationService {
                 history,
                 normalizeLocale(request.getLocale())
         );
+    }
+
+    private String getCompanionDisplayName(AiRecommendationRequest.CompanionType type) {
+        return switch (type) {
+            case ALONE -> "혼자";
+            case FRIEND -> "친구";
+            case FAMILY -> "가족";
+            case COUPLE -> "연인";
+            case KIDS -> "아이";
+            case FOREIGN_GUEST -> "외국인 게스트";
+            case OTHER -> "함께";
+        };
     }
 
     private List<RecommendedExperienceResponse> fetchExperiencesByIds(

@@ -42,6 +42,7 @@ public class ReservationService {
     private final ReviewRepository reviewRepository;
     private final ApplicationEventPublisher eventPublisher;
     private final com.janginharou.domain.qr.service.QrCodeService qrCodeService;
+    private final com.janginharou.domain.payment.service.PaymentService paymentService;
 
     private static final Set<ReservationStatus> ACTIVE_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -163,14 +164,17 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation processPayment(Long reservationId, Long userId, String paymentKey) {
+    public Reservation processPayment(Long reservationId, Long userId, String paymentMethod) {
         Reservation reservation = getReservationById(reservationId);
         validateUserOwnsReservation(reservation, userId);
         validateStatus(reservation, ReservationStatus.APPROVED);
         ReservationStatus oldStatus = reservation.getStatus();
 
+        // Mock 결제 처리
+        com.janginharou.domain.payment.entity.Payment payment = paymentService.createMockPayment(reservation, paymentMethod);
+
         // 결제 상태 변경
-        reservation.pay(paymentKey, createPaymentOrderId(reservation));
+        reservation.pay(payment.getPaymentKey(), payment.getOrderId());
 
         // QR 코드 생성 (실패해도 결제는 완료 상태 유지)
         try {
@@ -227,6 +231,31 @@ public class ReservationService {
         }
 
         publishStatusChangeEvent(reservation, oldStatus, cancellationReason);
+        return reservation;
+    }
+
+    @Transactional
+    public Reservation artisanCancelReservation(Long reservationId, Long artisanUserId, String cancellationReason) {
+        Reservation reservation = getReservationById(reservationId);
+        validateArtisanOwnsExperience(reservation, artisanUserId);
+
+        ReservationStatus status = reservation.getStatus();
+        if (status == ReservationStatus.PENDING
+                || status == ReservationStatus.COMPLETED
+                || status == ReservationStatus.REJECTED
+                || status == ReservationStatus.CANCELLED) {
+            throw new InvalidRequestException("Cannot cancel reservation in status: " + status);
+        }
+
+        ReservationStatus oldStatus = reservation.getStatus();
+        reservation.cancel(cancellationReason);
+
+        if (reservation.getQrCode() != null) {
+            reservation.setQrCode(null);
+            log.info("QR code invalidated for artisan-cancelled reservation: {}", reservationId);
+        }
+
+        publishArtisanCancelEvent(reservation, oldStatus, cancellationReason);
         return reservation;
     }
 
@@ -288,6 +317,12 @@ public class ReservationService {
         }
     }
 
+    private void validateArtisanOwnsExperience(Reservation reservation, Long artisanUserId) {
+        if (!reservation.getExperience().getArtisan().getUser().getId().equals(artisanUserId)) {
+            throw new UnauthorizedException("You do not own this experience");
+        }
+    }
+
     private void validateUserOwnsReservation(Reservation reservation, Long userId) {
         if (!reservation.getUser().getId().equals(userId)) {
             throw new UnauthorizedException("You do not own this reservation");
@@ -299,6 +334,20 @@ public class ReservationService {
                 reservation.getId(),
                 reservation.getUser(), // 예약한 사용자
                 reservation.getExperience().getArtisan().getUser(), // 장인의 User
+                reservation.getExperience().getId(),
+                reservation.getExperience().getTitle(),
+                oldStatus,
+                reservation.getStatus(),
+                reason
+        );
+        eventPublisher.publishEvent(event);
+    }
+
+    private void publishArtisanCancelEvent(Reservation reservation, ReservationStatus oldStatus, String reason) {
+        ReservationStatusChangedEvent event = ReservationStatusChangedEvent.ofArtisanCancel(
+                reservation.getId(),
+                reservation.getUser(),
+                reservation.getExperience().getArtisan().getUser(),
                 reservation.getExperience().getId(),
                 reservation.getExperience().getTitle(),
                 oldStatus,

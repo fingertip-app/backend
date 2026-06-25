@@ -11,6 +11,8 @@ import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.event.ReservationStatusChangedEvent;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.qr.service.QrCodeService;
+import com.janginharou.domain.payment.service.PaymentService;
+import com.janginharou.domain.payment.entity.Payment;
 import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
@@ -57,6 +59,9 @@ class ReservationServiceTest {
     @Mock
     private QrCodeService qrCodeService;
 
+    @Mock
+    private PaymentService paymentService;
+
     private ReservationService reservationService;
 
     private User user;
@@ -73,7 +78,8 @@ class ReservationServiceTest {
                 experienceScheduleRepository,
                 reviewRepository,
                 eventPublisher,
-                qrCodeService
+                qrCodeService,
+                paymentService
         );
 
         user = User.builder()
@@ -178,9 +184,19 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
 
+        // Mock payment creation
+        Payment mockPayment = Payment.builder()
+                .reservation(reservation)
+                .amount(reservation.getTotalPrice())
+                .paymentMethod("CARD")
+                .paymentKey("mock_payment_key")
+                .orderId("mock_order_id")
+                .build();
+        when(paymentService.createMockPayment(any(Reservation.class), eq("CARD"))).thenReturn(mockPayment);
+
         assertThat(reservationService.approveReservation(reservation.getId()).getStatus())
                 .isEqualTo(ReservationStatus.APPROVED);
-        assertThat(reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "payment-key").getStatus())
+        assertThat(reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "CARD").getStatus())
                 .isEqualTo(ReservationStatus.PAID);
         assertThat(reservationService.confirmReservation(reservation.getId(), reservation.getUser().getId()).getStatus())
                 .isEqualTo(ReservationStatus.CONFIRMED);
@@ -192,7 +208,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "payment-key"))
+        assertThatThrownBy(() -> reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "CARD"))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Invalid reservation status");
     }

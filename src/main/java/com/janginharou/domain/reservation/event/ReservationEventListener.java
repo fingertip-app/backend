@@ -84,6 +84,9 @@ public class ReservationEventListener {
             case CONFIRMED -> String.format("'%s' 체험 예약이 최종 확정되었습니다. 예약 내역을 확인하세요.", experienceTitle);
             case CANCELLED -> {
                 String reason = event.getReason() != null ? "\n사유: " + event.getReason() : "";
+                if (event.isCancelledByArtisan()) {
+                    yield String.format("'%s' 체험 예약이 장인에 의해 취소되었습니다.%s", experienceTitle, reason);
+                }
                 yield String.format("'%s' 체험 예약이 취소되었습니다.%s", experienceTitle, reason);
             }
             case COMPLETED -> String.format("'%s' 체험이 완료되었습니다. 후기를 남겨주세요.", experienceTitle);

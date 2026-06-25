@@ -63,7 +63,7 @@ public class QrCodeService {
     /**
      * QR 토큰 검증 및 예약 정보 반환
      */
-    @Transactional(readOnly = true)
+    @Transactional
     public QrVerifyResponse verifyQrCode(String qrToken) {
         log.info("Verifying QR code: {}", qrToken);
 
@@ -106,7 +106,13 @@ public class QrCodeService {
             throw new InvalidRequestException("This reservation has already been completed");
         }
 
-        // PAID 또는 CONFIRMED만 입장 가능
+        // PAID 또는 CONFIRMED → COMPLETED로 자동 전환 (정산 대상)
+        if (reservation.getStatus() == ReservationStatus.PAID
+                || reservation.getStatus() == ReservationStatus.CONFIRMED) {
+            reservation.complete();
+            log.info("✅ [QR 검증] 예약 완료 처리 - reservationId: {}, status: {} → COMPLETED",
+                    reservation.getId(), reservation.getStatus());
+        }
 
         log.info("QR verification successful for reservation: {}", reservation.getId());
         return QrVerifyResponse.from(reservation);

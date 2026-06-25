@@ -120,12 +120,12 @@ public class ReservationController {
     }
 
     @PostMapping("/{reservationId}/payment")
-    @Operation(summary = "결제 처리", description = "예약 결제 처리 (토스페이먼츠)")
+    @Operation(summary = "결제 처리", description = "예약 결제 처리 (Mock)")
     public ResponseEntity<ApiResponse<ReservationResponse>> processPayment(
             @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long reservationId,
-            @RequestParam String paymentKey) {
-        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, currentUser.id(), paymentKey));
+            @RequestParam(defaultValue = "CARD") String paymentMethod) {
+        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, currentUser.id(), paymentMethod));
         return ResponseEntity.ok(ApiResponse.ok(response, "Payment processed successfully"));
     }
 
@@ -148,5 +148,17 @@ public class ReservationController {
                 reservationService.cancelReservation(reservationId, currentUser.id(), cancellationReason)
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Reservation cancelled successfully"));
+    }
+
+    @PostMapping("/{reservationId}/artisan-cancel")
+    @Operation(summary = "장인의 예약 취소", description = "장인이 승인/결제/확정된 예약을 취소합니다. PENDING 상태는 거절(reject)을 사용하세요.")
+    public ResponseEntity<ApiResponse<ReservationResponse>> artisanCancelReservation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long reservationId,
+            @RequestParam(required = false) String cancellationReason) {
+        ReservationResponse response = ReservationResponse.from(
+                reservationService.artisanCancelReservation(reservationId, currentUser.id(), cancellationReason)
+        );
+        return ResponseEntity.ok(ApiResponse.ok(response, "Reservation cancelled by artisan successfully"));
     }
 }
