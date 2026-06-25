@@ -454,6 +454,6 @@ class ExperienceServiceTest {
         ordered.verify(experienceImageRepository).deleteAllByExperienceId(experience.getId());
         ordered.verify(experienceRepository).deleteSupportedLanguagesByExperienceId(experience.getId());
         ordered.verify(experienceRepository).deleteTagsByExperienceId(experience.getId());
-        ordered.verify(experienceRepository).delete(experience);
+        ordered.verify(experienceRepository).deleteByIdBulk(experience.getId());
     }
 }

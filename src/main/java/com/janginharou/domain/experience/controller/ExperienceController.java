@@ -75,7 +75,7 @@ public class ExperienceController {
     }
 
     @PostMapping("/{experienceId}/images")
-    @Operation(summary = "泥댄뿕 ?대?吏 異붽?", description = "泥댄뿕 ?곸꽭 ?대?吏瑜?湲곗〈 ?대?吏 ?ㅼ쓬 ?쒖꽌濡?異붽?")
+    @Operation(summary = "체험 이미지 추가", description = "체험 상세 이미지를 기존 이미지 다음 순서로 추가")
     public ResponseEntity<ApiResponse<ExperienceResponse>> addExperienceImages(
             @PathVariable Long experienceId,
             @RequestParam Long artisanId,

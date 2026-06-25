@@ -39,6 +39,10 @@ public interface ExperienceRepository extends JpaRepository<Experience, Long> {
     @Query(value = "DELETE FROM experience_tags WHERE experience_id = :experienceId", nativeQuery = true)
     void deleteTagsByExperienceId(@Param("experienceId") Long experienceId);
 
+    @Modifying
+    @Query("DELETE FROM Experience e WHERE e.id = :experienceId")
+    void deleteByIdBulk(@Param("experienceId") Long experienceId);
+
     @Query("SELECT DISTINCT e FROM Experience e JOIN e.tags t WHERE t = :tag AND e.isActive = true")
     List<Experience> findByTagsContaining(@Param("tag") String tag);
 

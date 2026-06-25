@@ -300,7 +300,7 @@ public class ExperienceService {
         experienceImageRepository.deleteAllByExperienceId(experienceId);
         experienceRepository.deleteSupportedLanguagesByExperienceId(experienceId);
         experienceRepository.deleteTagsByExperienceId(experienceId);
-        experienceRepository.delete(experience);
+        experienceRepository.deleteByIdBulk(experienceId);
     }
 
     private ExperienceResponse.ScheduleResponse toScheduleResponse(ExperienceSchedule schedule) {
