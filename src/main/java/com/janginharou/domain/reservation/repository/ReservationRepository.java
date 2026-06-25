@@ -48,6 +48,7 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     Optional<Reservation> findByPaymentOrderId(String paymentOrderId);
 
+    Optional<Reservation> findByQrCode(String qrCode);
     /**
      * 여러 체험의 특정 상태 예약 개수를 한 번에 조회 (N+1 방지)
      */
