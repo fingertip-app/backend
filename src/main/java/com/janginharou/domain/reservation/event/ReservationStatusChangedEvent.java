@@ -18,7 +18,8 @@ import java.time.LocalDateTime;
 public class ReservationStatusChangedEvent {
 
     private final Long reservationId;
-    private final User user; // userId 대신 User 객체로 변경하여 리스너에서 DB 조회 불필요
+    private final User user; // 예약한 사용자
+    private final User artisanUser; // 장인의 User 객체
     private final Long experienceId;
     private final String experienceTitle;
     private final ReservationStatus oldStatus;
@@ -29,6 +30,7 @@ public class ReservationStatusChangedEvent {
     public static ReservationStatusChangedEvent of(
             Long reservationId,
             User user,
+            User artisanUser,
             Long experienceId,
             String experienceTitle,
             ReservationStatus oldStatus,
@@ -38,6 +40,7 @@ public class ReservationStatusChangedEvent {
         return ReservationStatusChangedEvent.builder()
                 .reservationId(reservationId)
                 .user(user)
+                .artisanUser(artisanUser)
                 .experienceId(experienceId)
                 .experienceTitle(experienceTitle)
                 .oldStatus(oldStatus)

@@ -111,6 +111,10 @@ public class ReservationService {
                 .build();
         Reservation saved = reservationRepository.save(reservation);
         log.info("✅ [예약 생성] 저장 완료 - reservationId: {}, status: {}, totalPrice: {}", saved.getId(), saved.getStatus(), saved.getTotalPrice());
+
+        // 예약 신청 시 장인에게 알림 전송
+        publishStatusChangeEvent(saved, null, null);
+
         return saved;
     }
 
@@ -157,8 +161,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation processPayment(Long reservationId, String paymentKey) {
+    public Reservation processPayment(Long reservationId, Long userId, String paymentKey) {
         Reservation reservation = getReservationById(reservationId);
+        validateUserOwnsReservation(reservation, userId);
         validateStatus(reservation, ReservationStatus.APPROVED);
         ReservationStatus oldStatus = reservation.getStatus();
         reservation.pay(paymentKey, createPaymentOrderId(reservation));
@@ -167,8 +172,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation confirmReservation(Long reservationId) {
+    public Reservation confirmReservation(Long reservationId, Long userId) {
         Reservation reservation = getReservationById(reservationId);
+        validateUserOwnsReservation(reservation, userId);
         validateStatus(reservation, ReservationStatus.PAID);
         ReservationStatus oldStatus = reservation.getStatus();
         reservation.confirm();
@@ -177,8 +183,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation cancelReservation(Long reservationId, String cancellationReason) {
+    public Reservation cancelReservation(Long reservationId, Long userId, String cancellationReason) {
         Reservation reservation = getReservationById(reservationId);
+        validateUserOwnsReservation(reservation, userId);
         if (reservation.getStatus() == ReservationStatus.COMPLETED
                 || reservation.getStatus() == ReservationStatus.REJECTED
                 || reservation.getStatus() == ReservationStatus.CANCELLED) {
@@ -248,10 +255,17 @@ public class ReservationService {
         }
     }
 
+    private void validateUserOwnsReservation(Reservation reservation, Long userId) {
+        if (!reservation.getUser().getId().equals(userId)) {
+            throw new com.janginharou.global.exception.UnauthorizedException("You do not own this reservation");
+        }
+    }
+
     private void publishStatusChangeEvent(Reservation reservation, ReservationStatus oldStatus, String reason) {
         ReservationStatusChangedEvent event = ReservationStatusChangedEvent.of(
                 reservation.getId(),
-                reservation.getUser(), // User 객체 직접 전달로 리스너에서 DB 조회 불필요
+                reservation.getUser(), // 예약한 사용자
+                reservation.getExperience().getArtisan().getUser(), // 장인의 User
                 reservation.getExperience().getId(),
                 reservation.getExperience().getTitle(),
                 oldStatus,

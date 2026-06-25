@@ -37,8 +37,9 @@ public class NotificationService {
     }
 
     @Transactional
-    public Notification markAsRead(Long notificationId) {
+    public Notification markAsRead(Long notificationId, Long userId) {
         Notification notification = getNotificationById(notificationId);
+        validateUserOwnsNotification(notification, userId);
         notification.markAsRead();
         return notificationRepository.save(notification);
     }
@@ -58,7 +59,21 @@ public class NotificationService {
     }
 
     @Transactional
-    public void deleteNotification(Long notificationId) {
+    public void deleteNotification(Long notificationId, Long userId) {
+        Notification notification = getNotificationById(notificationId);
+        validateUserOwnsNotification(notification, userId);
         notificationRepository.deleteById(notificationId);
+    }
+
+    private void validateUserOwnsNotification(Notification notification, Long userId) {
+        if (!notification.getUser().getId().equals(userId)) {
+            throw new com.janginharou.global.exception.UnauthorizedException("You do not own this notification");
+        }
+    }
+
+    public void validateUserId(Long pathUserId, Long authenticatedUserId) {
+        if (!pathUserId.equals(authenticatedUserId)) {
+            throw new com.janginharou.global.exception.UnauthorizedException("You cannot access another user's notifications");
+        }
     }
 }

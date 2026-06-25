@@ -33,6 +33,8 @@ public interface ReservationRepository extends JpaRepository<Reservation, Long> 
 
     boolean existsByUserIdAndScheduleIdAndStatusIn(Long userId, Long scheduleId, List<ReservationStatus> statuses);
 
+    boolean existsByExperienceIdAndStatusIn(Long experienceId, List<ReservationStatus> statuses);
+
     @Query("""
             select coalesce(sum(r.numberOfParticipants), 0)
             from Reservation r

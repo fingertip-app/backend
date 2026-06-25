@@ -30,6 +30,8 @@ public class ExperienceResponse {
     private List<ScheduleResponse> schedules;
     private List<ImageResponse> images;
     private List<String> tags;
+    private Double averageRating;
+    private Long reviewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     @Getter

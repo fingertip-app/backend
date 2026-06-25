@@ -67,15 +67,18 @@ public class ExperienceController {
     @Operation(summary = "체험 프로그램 수정", description = "체험 프로그램 정보 수정")
     public ResponseEntity<ApiResponse<ExperienceResponse>> updateExperience(
             @PathVariable Long experienceId,
-            @RequestBody ExperienceRequest request) {
-        // TODO: 체험 프로그램 수정 처리
-        return ResponseEntity.ok(ApiResponse.ok(null, "Experience updated successfully"));
+            @RequestParam Long artisanId,
+            @Valid @RequestBody ExperienceRequest request) {
+        ExperienceResponse response = experienceService.updateExperience(experienceId, artisanId, request);
+        return ResponseEntity.ok(ApiResponse.ok(response, "Experience updated successfully"));
     }
 
     @DeleteMapping("/{experienceId}")
     @Operation(summary = "체험 프로그램 삭제", description = "체험 프로그램 삭제")
-    public ResponseEntity<ApiResponse<Void>> deleteExperience(@PathVariable Long experienceId) {
-        // TODO: 관련 예약 처리 후 체험 프로그램 삭제
+    public ResponseEntity<ApiResponse<Void>> deleteExperience(
+            @PathVariable Long experienceId,
+            @RequestParam Long artisanId) {
+        experienceService.deleteExperience(experienceId, artisanId);
         return ResponseEntity.ok(ApiResponse.ok(null, "Experience deleted successfully"));
     }
 }

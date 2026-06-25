@@ -89,4 +89,28 @@ public class Experience extends BaseEntity {
         this.images.add(image);
         image.setExperience(this);
     }
+
+    public void update(String title, String description, String culturalStory, String category,
+                       BigDecimal price, Integer durationMinutes, Integer maxParticipants,
+                       String difficulty, List<String> supportedLanguages,
+                       String locationAddress, BigDecimal locationLat, BigDecimal locationLng,
+                       List<String> tags) {
+        if (title != null && !title.isBlank()) this.title = title;
+        if (description != null) this.description = description;
+        if (culturalStory != null) this.culturalStory = culturalStory;
+        if (category != null && !category.isBlank()) this.category = category;
+        if (price != null) this.price = price;
+        if (durationMinutes != null) this.durationMinutes = durationMinutes;
+        if (maxParticipants != null) this.maxParticipants = maxParticipants;
+        if (difficulty != null) this.difficulty = difficulty;
+        if (supportedLanguages != null) this.supportedLanguages = supportedLanguages;
+        if (locationAddress != null) this.locationAddress = locationAddress;
+        if (locationLat != null) this.locationLat = locationLat;
+        if (locationLng != null) this.locationLng = locationLng;
+        if (tags != null) this.tags = tags;
+    }
+
+    public void clearImages() {
+        this.images.clear();
+    }
 }

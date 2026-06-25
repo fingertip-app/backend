@@ -123,26 +123,30 @@ public class ReservationController {
     @PostMapping("/{reservationId}/payment")
     @Operation(summary = "결제 처리", description = "예약 결제 처리 (토스페이먼츠)")
     public ResponseEntity<ApiResponse<ReservationResponse>> processPayment(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long reservationId,
             @RequestParam String paymentKey) {
-        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, paymentKey));
+        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, currentUser.id(), paymentKey));
         return ResponseEntity.ok(ApiResponse.ok(response, "Payment processed successfully"));
     }
 
     @PostMapping("/{reservationId}/confirm")
     @Operation(summary = "예약 최종 확정", description = "예약 최종 확정")
-    public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId));
+    public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long reservationId) {
+        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId, currentUser.id()));
         return ResponseEntity.ok(ApiResponse.ok(response, "Reservation confirmed successfully"));
     }
 
     @PostMapping("/{reservationId}/cancel")
     @Operation(summary = "예약 취소", description = "예약 취소 및 환불")
     public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long reservationId,
             @RequestParam(required = false) String cancellationReason) {
         ReservationResponse response = ReservationResponse.from(
-                reservationService.cancelReservation(reservationId, cancellationReason)
+                reservationService.cancelReservation(reservationId, currentUser.id(), cancellationReason)
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Reservation cancelled successfully"));
     }

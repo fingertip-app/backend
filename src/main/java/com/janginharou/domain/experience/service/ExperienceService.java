@@ -23,6 +23,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -33,6 +34,8 @@ public class ExperienceService {
     private final ExperienceScheduleRepository experienceScheduleRepository;
     private final ReservationRepository reservationRepository;
     private final ArtisanRepository artisanRepository;
+    private final com.janginharou.domain.experience.repository.ExperienceImageRepository experienceImageRepository;
+    private final com.janginharou.domain.review.repository.ReviewRepository reviewRepository;
 
     private static final Set<ReservationStatus> CAPACITY_HOLDING_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -54,9 +57,29 @@ public class ExperienceService {
 
     @Transactional(readOnly = true)
     public List<ExperienceResponse> getExperienceResponsesByArtisanId(Long artisanId) {
-        return experienceRepository.findByArtisanId(artisanId)
+        List<Experience> experiences = experienceRepository.findByArtisanId(artisanId);
+
+        // 체험 ID 목록 추출
+        List<Long> experienceIds = experiences.stream()
+                .map(Experience::getId)
+                .toList();
+
+        // 리뷰 통계 한 번에 조회
+        Map<Long, Map<String, Object>> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
                 .stream()
-                .map(this::toExperienceResponseWithSchedules)
+                .collect(java.util.stream.Collectors.toMap(
+                        map -> ((Number) map.get("experienceId")).longValue(),
+                        map -> map
+                ));
+
+        // DTO 변환
+        return experiences.stream()
+                .map(experience -> {
+                    Map<String, Object> stats = reviewStatsMap.get(experience.getId());
+                    Double avgRating = stats != null ? (Double) stats.get("avgRating") : 0.0;
+                    Long reviewCount = stats != null ? ((Number) stats.get("reviewCount")).longValue() : 0L;
+                    return toExperienceResponseWithSchedulesAndReviews(experience, avgRating, reviewCount);
+                })
                 .toList();
     }
 
@@ -67,9 +90,29 @@ public class ExperienceService {
 
     @Transactional(readOnly = true)
     public List<ExperienceResponse> getActiveExperienceResponses() {
-        return experienceRepository.findByIsActiveTrue()
+        List<Experience> experiences = experienceRepository.findByIsActiveTrue();
+
+        // 체험 ID 목록 추출
+        List<Long> experienceIds = experiences.stream()
+                .map(Experience::getId)
+                .toList();
+
+        // 리뷰 통계 한 번에 조회
+        Map<Long, Map<String, Object>> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
                 .stream()
-                .map(this::toExperienceResponseWithSchedules)
+                .collect(java.util.stream.Collectors.toMap(
+                        map -> ((Number) map.get("experienceId")).longValue(),
+                        map -> map
+                ));
+
+        // DTO 변환
+        return experiences.stream()
+                .map(experience -> {
+                    Map<String, Object> stats = reviewStatsMap.get(experience.getId());
+                    Double avgRating = stats != null ? (Double) stats.get("avgRating") : 0.0;
+                    Long reviewCount = stats != null ? ((Number) stats.get("reviewCount")).longValue() : 0L;
+                    return toExperienceResponseWithSchedulesAndReviews(experience, avgRating, reviewCount);
+                })
                 .toList();
     }
 
@@ -81,6 +124,10 @@ public class ExperienceService {
                 .stream()
                 .map(this::toScheduleResponse)
                 .toList();
+
+        // 리뷰 통계 조회
+        Double avgRating = reviewRepository.getAverageRating(experienceId);
+        Long reviewCount = reviewRepository.getReviewCount(experienceId);
 
         return ExperienceResponse.builder()
                 .id(experience.getId())
@@ -101,6 +148,8 @@ public class ExperienceService {
                 .schedules(schedules)
                 .images(toImageResponses(experience))
                 .tags(toTagList(experience))
+                .averageRating(avgRating != null ? avgRating : 0.0)
+                .reviewCount(reviewCount != null ? reviewCount : 0L)
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();
@@ -153,20 +202,77 @@ public class ExperienceService {
                 .map(experienceScheduleRepository::save)
                 .toList();
 
+        // 이미지 저장
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            ExperienceImage image = ExperienceImage.builder()
+                    .experience(savedExperience)
+                    .imageUrl(request.getImageUrl())
+                    .displayOrder(0)
+                    .build();
+            experienceImageRepository.save(image);
+        }
+
         return toExperienceResponse(savedExperience, savedSchedules);
     }
 
     @Transactional
-    public Experience updateExperience(Long experienceId, Experience updateData) {
-        // TODO: 체험 프로그램 수정 처리
+    public ExperienceResponse updateExperience(Long experienceId, Long artisanId, ExperienceRequest request) {
         Experience experience = getExperienceById(experienceId);
-        return experience;
+        validateArtisanOwnsExperience(experience, artisanId);
+
+        experience.update(
+                request.getTitle(),
+                request.getDescription(),
+                request.getCulturalStory(),
+                request.getCategory(),
+                request.getPrice(),
+                request.getDurationMinutes(),
+                request.getMaxParticipants(),
+                request.getDifficulty() != null ? request.getDifficulty().name() : null,
+                toList(request.getSupportedLanguages()),
+                request.getLocationAddress(),
+                request.getLocationLat(),
+                request.getLocationLng(),
+                request.getTags()
+        );
+
+        // 이미지 업데이트 (기존 삭제 후 새로 추가)
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            experience.clearImages();
+            ExperienceImage image = ExperienceImage.builder()
+                    .experience(experience)
+                    .imageUrl(request.getImageUrl())
+                    .displayOrder(0)
+                    .build();
+            experienceImageRepository.save(image);
+        }
+
+        return toExperienceResponseWithSchedules(experience);
+    }
+
+    private void validateArtisanOwnsExperience(Experience experience, Long artisanId) {
+        if (!experience.getArtisan().getId().equals(artisanId)) {
+            throw new com.janginharou.global.exception.UnauthorizedException("You do not own this experience");
+        }
     }
 
     @Transactional
-    public void deleteExperience(Long experienceId) {
-        // TODO: 체험 프로그램 삭제 처리 (관련 예약 처리)
-        experienceRepository.deleteById(experienceId);
+    public void deleteExperience(Long experienceId, Long artisanId) {
+        Experience experience = getExperienceById(experienceId);
+        validateArtisanOwnsExperience(experience, artisanId);
+
+        // 활성 예약이 있는지 확인
+        boolean hasActiveReservations = reservationRepository.existsByExperienceIdAndStatusIn(
+                experienceId,
+                List.copyOf(CAPACITY_HOLDING_STATUSES)
+        );
+
+        if (hasActiveReservations) {
+            throw new InvalidRequestException("Cannot delete experience with active reservations");
+        }
+
+        // Hard delete
+        experienceRepository.delete(experience);
     }
 
     private ExperienceResponse.ScheduleResponse toScheduleResponse(ExperienceSchedule schedule) {
@@ -191,6 +297,12 @@ public class ExperienceService {
         return toExperienceResponse(experience, schedules);
     }
 
+    private ExperienceResponse toExperienceResponseWithSchedulesAndReviews(Experience experience, Double avgRating, Long reviewCount) {
+        List<ExperienceSchedule> schedules = experienceScheduleRepository
+                .findByExperienceIdAndIsActiveTrue(experience.getId());
+        return toExperienceResponseWithReviews(experience, schedules, avgRating, reviewCount);
+    }
+
     private ExperienceResponse toExperienceResponse(Experience experience, List<ExperienceSchedule> schedules) {
         return ExperienceResponse.builder()
                 .id(experience.getId())
@@ -211,6 +323,35 @@ public class ExperienceService {
                 .schedules(schedules.stream().map(this::toScheduleResponse).toList())
                 .images(toImageResponses(experience))
                 .tags(toTagList(experience))
+                .averageRating(0.0)
+                .reviewCount(0L)
+                .createdAt(experience.getCreatedAt())
+                .updatedAt(experience.getUpdatedAt())
+                .build();
+    }
+
+    private ExperienceResponse toExperienceResponseWithReviews(Experience experience, List<ExperienceSchedule> schedules, Double avgRating, Long reviewCount) {
+        return ExperienceResponse.builder()
+                .id(experience.getId())
+                .artisanId(experience.getArtisan().getId())
+                .title(experience.getTitle())
+                .description(experience.getDescription())
+                .culturalStory(experience.getCulturalStory())
+                .category(experience.getCategory())
+                .price(experience.getPrice())
+                .durationMinutes(experience.getDurationMinutes())
+                .maxParticipants(experience.getMaxParticipants())
+                .difficulty(experience.getDifficulty())
+                .supportedLanguages(experience.getSupportedLanguages())
+                .locationAddress(experience.getLocationAddress())
+                .locationLat(experience.getLocationLat())
+                .locationLng(experience.getLocationLng())
+                .isActive(experience.getIsActive())
+                .schedules(schedules.stream().map(this::toScheduleResponse).toList())
+                .images(toImageResponses(experience))
+                .tags(toTagList(experience))
+                .averageRating(avgRating != null ? avgRating : 0.0)
+                .reviewCount(reviewCount != null ? reviewCount : 0L)
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();
