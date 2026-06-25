@@ -2,20 +2,24 @@ package com.janginharou.domain.reservation.controller;
 
 import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.dto.ReservationResponse;
+import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.service.ReservationService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+@Slf4j
 @RestController
 @RequestMapping("/reservations")
 @RequiredArgsConstructor
@@ -25,33 +29,42 @@ public class ReservationController {
     private final ReservationService reservationService;
 
     @GetMapping
-    @Operation(summary = "내 예약 목록", description = "사용자의 예약 목록 조회")
+    @Operation(summary = "내 예약 목록", description = "인증된 사용자의 예약 목록 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)\n- status: 예약 상태 필터 (선택사항)")
     public ResponseEntity<ApiResponse<List<ReservationResponse>>> getReservations(
-            @RequestParam Long userId,
-            @RequestParam(required = false) ReservationStatus status) {
-        List<ReservationResponse> responses = (status == null
-                ? reservationService.getReservationsByUserId(userId)
-                : reservationService.getReservationsByUserIdAndStatus(userId, status))
-                .stream()
-                .map(ReservationResponse::from)
-                .toList();
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @RequestParam(required = false) ReservationStatus status,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
+        List<Reservation> reservations = (status == null
+                ? reservationService.getReservationsByUserId(currentUser.id())
+                : reservationService.getReservationsByUserIdAndStatus(currentUser.id(), status));
+        // N+1 방지: bulk 메서드 사용
+        List<ReservationResponse> responses = reservationService.buildReservationResponses(reservations, includeExperience);
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
     @GetMapping("/{reservationId}")
-    @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회")
-    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.getReservationById(reservationId));
+    @Operation(summary = "예약 조회", description = "예약 ID로 예약 정보 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    public ResponseEntity<ApiResponse<ReservationResponse>> getReservation(
+            @PathVariable Long reservationId,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
+        ReservationResponse response = reservationService.buildReservationResponse(
+                reservationService.getReservationById(reservationId),
+                includeExperience
+        );
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
     @GetMapping("/user/{userId}")
-    @Operation(summary = "사용자 예약 목록", description = "사용자의 모든 예약 조회")
-    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserReservations(@PathVariable Long userId) {
-        List<ReservationResponse> responses = reservationService.getReservationsByUserId(userId)
-                .stream()
-                .map(ReservationResponse::from)
-                .toList();
+    @Operation(summary = "사용자 예약 목록", description = "사용자의 모든 예약 조회\n\nQuery Parameters:\n- include=experience: 체험 정보 포함 (선택사항)")
+    public ResponseEntity<ApiResponse<List<ReservationResponse>>> getUserReservations(
+            @PathVariable Long userId,
+            @RequestParam(required = false) String include) {
+        boolean includeExperience = "experience".equals(include);
+        List<Reservation> reservations = reservationService.getReservationsByUserId(userId);
+        // N+1 방지: bulk 메서드 사용
+        List<ReservationResponse> responses = reservationService.buildReservationResponses(reservations, includeExperience);
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
@@ -68,9 +81,13 @@ public class ReservationController {
     @PostMapping
     @Operation(summary = "예약 생성", description = "새로운 예약 생성")
     public ResponseEntity<ApiResponse<ReservationResponse>> createReservation(
-            @RequestParam Long userId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @Valid @RequestBody ReservationRequest request) {
-        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(userId, request));
+        log.info("🔔 [컨트롤러] POST /reservations 요청 받음 - userId: {}, request: {}", currentUser.id(), request);
+
+        ReservationResponse response = ReservationResponse.from(reservationService.createReservation(currentUser.id(), request));
+        log.info("✅ [컨트롤러] 예약 생성 완료 - reservationId: {}", response.getId());
+
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(ApiResponse.ok(response, "Reservation created successfully"));
     }
@@ -105,26 +122,30 @@ public class ReservationController {
     @PostMapping("/{reservationId}/payment")
     @Operation(summary = "결제 처리", description = "예약 결제 처리 (토스페이먼츠)")
     public ResponseEntity<ApiResponse<ReservationResponse>> processPayment(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long reservationId,
             @RequestParam String paymentKey) {
-        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, paymentKey));
+        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, currentUser.id(), paymentKey));
         return ResponseEntity.ok(ApiResponse.ok(response, "Payment processed successfully"));
     }
 
     @PostMapping("/{reservationId}/confirm")
     @Operation(summary = "예약 최종 확정", description = "예약 최종 확정")
-    public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId));
+    public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long reservationId) {
+        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId, currentUser.id()));
         return ResponseEntity.ok(ApiResponse.ok(response, "Reservation confirmed successfully"));
     }
 
     @PostMapping("/{reservationId}/cancel")
     @Operation(summary = "예약 취소", description = "예약 취소 및 환불")
     public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long reservationId,
             @RequestParam(required = false) String cancellationReason) {
         ReservationResponse response = ReservationResponse.from(
-                reservationService.cancelReservation(reservationId, cancellationReason)
+                reservationService.cancelReservation(reservationId, currentUser.id(), cancellationReason)
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Reservation cancelled successfully"));
     }

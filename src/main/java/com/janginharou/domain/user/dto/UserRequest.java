@@ -17,8 +17,9 @@ public class UserRequest {
     @Email
     private String email;
 
+    private String name;
     private String nickname;
-
+    private String phone;
     private String profileImageUrl;
     private List<String> preferredCategories;
 }

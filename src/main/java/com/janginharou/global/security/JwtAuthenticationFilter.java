@@ -65,14 +65,29 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         String emailClaim = claims.getString("email");
         String email = StringUtils.hasText(emailClaim) ? emailClaim : supabaseId + "@supabase.local";
+
+        // user_metadata에서 정보 읽기 (Supabase signUp options.data)
         String nickname = firstNonBlank(
+                claims.getString("user_metadata.nickname"),
                 claims.getString("nickname"),
+                claims.getString("user_metadata.name"),
                 claims.getString("name"),
                 email.split("@")[0]
         );
 
         User user = userRepository.findByProviderId(supabaseId)
-                .orElseGet(() -> userRepository.save(User.supabaseUser(supabaseId, email, nickname)));
+                .orElseGet(() -> {
+                    String name = firstNonBlank(
+                            claims.getString("user_metadata.name"),
+                            claims.getString("name"),
+                            nickname
+                    );
+                    String phone = firstNonBlank(
+                            claims.getString("user_metadata.phone"),
+                            claims.getString("phone")
+                    );
+                    return userRepository.save(User.supabaseUser(supabaseId, email, nickname, name, phone));
+                });
 
         AuthenticatedUser principal = new AuthenticatedUser(
                 user.getId(),

@@ -2,6 +2,7 @@ package com.janginharou.domain.user.controller;
 
 import com.janginharou.domain.user.dto.UserRequest;
 import com.janginharou.domain.user.dto.UserResponse;
+import com.janginharou.domain.user.dto.UserStatsResponse;
 import com.janginharou.domain.user.service.UserService;
 import com.janginharou.global.common.ApiResponse;
 import com.janginharou.global.security.AuthenticatedUser;
@@ -52,10 +53,21 @@ public class UserController {
     ) {
         UserResponse response = UserResponse.from(userService.updateProfile(
                 currentUser.id(),
+                request.getName(),
                 request.getNickname(),
+                request.getPhone(),
                 request.getProfileImageUrl(),
                 request.getPreferredCategories()
         ));
+        return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @GetMapping("/me/stats")
+    @Operation(summary = "내 활동 통계 조회", description = "찜한 체험 수, 작성한 후기 수 등 마이페이지 통계 조회")
+    public ResponseEntity<ApiResponse<UserStatsResponse>> getMyStats(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        UserStatsResponse response = userService.getUserStats(currentUser.id());
         return ResponseEntity.ok(ApiResponse.ok(response));
     }
 
@@ -83,10 +95,19 @@ public class UserController {
         return ResponseEntity.ok(ApiResponse.ok(null, "User updated successfully"));
     }
 
+    @DeleteMapping("/me")
+    @Operation(summary = "회원 탈퇴", description = "인증된 사용자의 계정 탈퇴 (soft delete)")
+    public ResponseEntity<ApiResponse<Void>> deleteMe(
+            @AuthenticationPrincipal AuthenticatedUser currentUser
+    ) {
+        userService.deleteUser(currentUser.id());
+        return ResponseEntity.ok(ApiResponse.ok(null, "User account deactivated successfully"));
+    }
+
     @DeleteMapping("/{userId}")
-    @Operation(summary = "사용자 삭제", description = "사용자 삭제 (탈퇴)")
+    @Operation(summary = "사용자 삭제 (관리자용)", description = "관리자가 사용자를 삭제")
     public ResponseEntity<ApiResponse<Void>> deleteUser(@PathVariable Long userId) {
-        // TODO: 사용자 탈퇴 처리
+        userService.deleteUser(userId);
         return ResponseEntity.ok(ApiResponse.ok(null, "User deleted successfully"));
     }
 }

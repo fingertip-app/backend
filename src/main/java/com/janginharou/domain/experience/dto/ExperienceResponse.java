@@ -1,21 +1,17 @@
 package com.janginharou.domain.experience.dto;
-
-import com.janginharou.domain.experience.entity.Experience;
+import com.janginharou.domain.experience.entity.ExperienceImage;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
-
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
-
 @Getter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
 public class ExperienceResponse {
-
     private Long id;
     private Long artisanId;
     private String title;
@@ -32,31 +28,12 @@ public class ExperienceResponse {
     private BigDecimal locationLng;
     private Boolean isActive;
     private List<ScheduleResponse> schedules;
+    private List<ImageResponse> images;
+    private List<String> tags;
+    private Double averageRating;
+    private Long reviewCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-
-    public static ExperienceResponse from(Experience experience) {
-        return ExperienceResponse.builder()
-                .id(experience.getId())
-                .artisanId(experience.getArtisan().getId())
-                .title(experience.getTitle())
-                .description(experience.getDescription())
-                .culturalStory(experience.getCulturalStory())
-                .category(experience.getCategory())
-                .price(experience.getPrice())
-                .durationMinutes(experience.getDurationMinutes())
-                .maxParticipants(experience.getMaxParticipants())
-                .difficulty(experience.getDifficulty())
-                .supportedLanguages(experience.getSupportedLanguages())
-                .locationAddress(experience.getLocationAddress())
-                .locationLat(experience.getLocationLat())
-                .locationLng(experience.getLocationLng())
-                .isActive(experience.getIsActive())
-                .createdAt(experience.getCreatedAt())
-                .updatedAt(experience.getUpdatedAt())
-                .build();
-    }
-
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor
@@ -68,5 +45,22 @@ public class ExperienceResponse {
         private Integer bookedSlots;
         private Integer remainingSlots;
         private Boolean isActive;
+    }
+    @Getter
+    @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
+    public static class ImageResponse {
+        private Long id;
+        private String imageUrl;
+        private Integer displayOrder;
+
+        public static ImageResponse from(ExperienceImage image) {
+            return ImageResponse.builder()
+                    .id(image.getId())
+                    .imageUrl(image.getImageUrl())
+                    .displayOrder(image.getDisplayOrder())
+                    .build();
+        }
     }
 }

@@ -1,17 +1,24 @@
 package com.janginharou.domain.user.service;
 
+import com.janginharou.domain.review.repository.ReviewRepository;
+import com.janginharou.domain.user.dto.UserStatsResponse;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
+import com.janginharou.domain.wishlist.repository.WishlistRepository;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class UserService {
 
     private final UserRepository userRepository;
+    private final WishlistRepository wishlistRepository;
+    private final ReviewRepository reviewRepository;
 
     @Transactional(readOnly = true)
     public User getUserById(Long userId) {
@@ -37,27 +44,27 @@ public class UserService {
 
     @Transactional
     public User createUser(User user) {
-        // TODO: 회원가입 비즈니스 로직 (중복 검증, 데이터 정규화 등)
         return userRepository.save(user);
     }
 
     @Transactional
-    public User updateUser(Long userId, User updateData) {
-        // TODO: 회원 정보 수정 처리
+    public User updateProfile(Long userId, String name, String nickname, String phone, String profileImageUrl, List<String> preferredCategories) {
         User user = getUserById(userId);
-        return user;
-    }
-
-    @Transactional
-    public User updateProfile(Long userId, String nickname, String profileImageUrl, java.util.List<String> preferredCategories) {
-        User user = getUserById(userId);
-        user.updateProfile(nickname, profileImageUrl, preferredCategories);
+        user.updateProfile(name, nickname, phone, profileImageUrl, preferredCategories);
         return user;
     }
 
     @Transactional
     public void deleteUser(Long userId) {
-        // TODO: 회원 탈퇴 처리 (soft delete 또는 hard delete)
-        userRepository.deleteById(userId);
+        User user = getUserById(userId);
+        // Soft delete: isActive를 false로 설정
+        user.deactivate();
+    }
+
+    @Transactional(readOnly = true)
+    public UserStatsResponse getUserStats(Long userId) {
+        long wishlistCount = wishlistRepository.countByUserId(userId);
+        long reviewCount = reviewRepository.countByUserId(userId);
+        return UserStatsResponse.of(wishlistCount, reviewCount, 0L, 0L);
     }
 }

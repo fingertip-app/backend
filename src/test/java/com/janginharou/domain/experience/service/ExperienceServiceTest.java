@@ -5,6 +5,7 @@ import com.janginharou.domain.artisan.repository.ArtisanRepository;
 import com.janginharou.domain.experience.dto.ExperienceRequest;
 import com.janginharou.domain.experience.dto.ExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
+import com.janginharou.domain.experience.entity.ExperienceImage;
 import com.janginharou.domain.experience.entity.ExperienceDifficulty;
 import com.janginharou.domain.experience.entity.ExperienceSchedule;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
@@ -30,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -49,6 +51,12 @@ class ExperienceServiceTest {
     @Mock
     private ArtisanRepository artisanRepository;
 
+    @Mock
+    private com.janginharou.domain.experience.repository.ExperienceImageRepository experienceImageRepository;
+
+    @Mock
+    private com.janginharou.domain.review.repository.ReviewRepository reviewRepository;
+
     private ExperienceService experienceService;
     private Artisan artisan;
 
@@ -58,7 +66,9 @@ class ExperienceServiceTest {
                 experienceRepository,
                 experienceScheduleRepository,
                 reservationRepository,
-                artisanRepository
+                artisanRepository,
+                experienceImageRepository,
+                reviewRepository
         );
 
         User user = User.builder()
@@ -237,5 +247,112 @@ class ExperienceServiceTest {
         assertThat(responses.get(0).getSchedules()).hasSize(1);
         assertThat(responses.get(0).getSchedules().get(0).getId()).isEqualTo(schedule.getId());
         assertThat(responses.get(0).getSchedules().get(0).getRemainingSlots()).isEqualTo(3);
+    }
+
+    @Test
+    void returnsEmptyImagesWhenExperienceHasNoImages() {
+        Experience experience = Experience.builder()
+                .id(100L)
+                .artisan(artisan)
+                .title("전통 매듭 만들기")
+                .description("전통 매듭을 배웁니다")
+                .category("공예")
+                .price(BigDecimal.valueOf(30000))
+                .durationMinutes(90)
+                .maxParticipants(8)
+                .difficulty(ExperienceDifficulty.BEGINNER.name())
+                .supportedLanguages(List.of("ko", "en"))
+                .locationAddress("서울 종로구")
+                .images(null)
+                .tags(null)
+                .isActive(true)
+                .build();
+
+        when(experienceRepository.findByIsActiveTrue()).thenReturn(List.of(experience));
+        when(experienceScheduleRepository.findByExperienceIdAndIsActiveTrue(experience.getId()))
+                .thenReturn(List.of());
+
+        List<ExperienceResponse> responses = experienceService.getActiveExperienceResponses();
+
+        assertThat(responses).hasSize(1);
+        assertThat(responses.get(0).getImages()).isEmpty();
+        assertThat(responses.get(0).getTags()).isEmpty();
+    }
+
+    @Test
+    void sortsImagesByDisplayOrderAscending() {
+        ExperienceImage second = ExperienceImage.builder()
+                .imageUrl("https://example.com/2.jpg")
+                .displayOrder(2)
+                .build();
+        ExperienceImage first = ExperienceImage.builder()
+                .imageUrl("https://example.com/1.jpg")
+                .displayOrder(1)
+                .build();
+
+        Experience experience = Experience.builder()
+                .id(100L)
+                .artisan(artisan)
+                .title("전통 매듭 만들기")
+                .description("전통 매듭을 배웁니다")
+                .category("공예")
+                .price(BigDecimal.valueOf(30000))
+                .durationMinutes(90)
+                .maxParticipants(8)
+                .difficulty(ExperienceDifficulty.BEGINNER.name())
+                .supportedLanguages(List.of("ko", "en"))
+                .locationAddress("서울 종로구")
+                .images(List.of(second, first))
+                .isActive(true)
+                .build();
+
+        when(experienceRepository.findByIsActiveTrue()).thenReturn(List.of(experience));
+        when(experienceScheduleRepository.findByExperienceIdAndIsActiveTrue(experience.getId()))
+                .thenReturn(List.of());
+
+        List<ExperienceResponse> responses = experienceService.getActiveExperienceResponses();
+
+        assertThat(responses.get(0).getImages())
+                .extracting("displayOrder")
+                .containsExactly(1, 2);
+    }
+
+    @Test
+    void treatsNullDisplayOrderAsLowestWhenSorting() {
+        ExperienceImage withOrder = mock(ExperienceImage.class);
+        when(withOrder.getId()).thenReturn(1L);
+        when(withOrder.getImageUrl()).thenReturn("https://example.com/with-order.jpg");
+        when(withOrder.getDisplayOrder()).thenReturn(5);
+
+        ExperienceImage withNullOrder = mock(ExperienceImage.class);
+        when(withNullOrder.getId()).thenReturn(2L);
+        when(withNullOrder.getImageUrl()).thenReturn("https://example.com/null-order.jpg");
+        when(withNullOrder.getDisplayOrder()).thenReturn(null);
+
+        Experience experience = Experience.builder()
+                .id(100L)
+                .artisan(artisan)
+                .title("전통 매듭 만들기")
+                .description("전통 매듭을 배웁니다")
+                .category("공예")
+                .price(BigDecimal.valueOf(30000))
+                .durationMinutes(90)
+                .maxParticipants(8)
+                .difficulty(ExperienceDifficulty.BEGINNER.name())
+                .supportedLanguages(List.of("ko", "en"))
+                .locationAddress("서울 종로구")
+                .images(List.of(withOrder, withNullOrder))
+                .isActive(true)
+                .build();
+
+        when(experienceRepository.findByIsActiveTrue()).thenReturn(List.of(experience));
+        when(experienceScheduleRepository.findByExperienceIdAndIsActiveTrue(experience.getId()))
+                .thenReturn(List.of());
+
+        List<ExperienceResponse> responses = experienceService.getActiveExperienceResponses();
+
+        assertThat(responses.get(0).getImages())
+                .extracting("id")
+                .containsExactly(2L, 1L);
     }
 }

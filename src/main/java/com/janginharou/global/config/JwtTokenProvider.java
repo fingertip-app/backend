@@ -115,6 +115,17 @@ public class JwtTokenProvider {
 
     public record AuthTokenClaims(String subject, Map<String, Object> claims) {
         public String getString(String name) {
+            // 중첩된 필드 지원 (예: "user_metadata.nickname")
+            if (name.contains(".")) {
+                String[] parts = name.split("\\.", 2);
+                Object parent = claims.get(parts[0]);
+                if (parent instanceof Map<?, ?> parentMap) {
+                    Object value = parentMap.get(parts[1]);
+                    return value instanceof String stringValue ? stringValue : null;
+                }
+                return null;
+            }
+
             Object value = claims.get(name);
             return value instanceof String stringValue ? stringValue : null;
         }

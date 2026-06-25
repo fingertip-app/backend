@@ -25,13 +25,19 @@ public class User extends BaseEntity {
     private String email;
 
     @Column(nullable = false, length = 50)
-    private String provider;  // kakao, google, apple
+    private String provider;  // kakao, google, apple, supabase
 
     @Column(name = "provider_id", unique = true, length = 255)
     private String providerId;
 
+    @Column(length = 100)
+    private String name;
+
     @Column(nullable = false, length = 100)
     private String nickname;
+
+    @Column(length = 20)
+    private String phone;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
@@ -55,20 +61,28 @@ public class User extends BaseEntity {
     @Builder.Default
     private Boolean isActive = true;
 
-    public static User supabaseUser(String supabaseId, String email, String nickname) {
+    public static User supabaseUser(String supabaseId, String email, String nickname, String name, String phone) {
         return User.builder()
                 .email(email)
                 .provider("supabase")
                 .providerId(supabaseId)
                 .nickname(nickname)
+                .name(name)
+                .phone(phone)
                 .role(UserRole.USER)
                 .isActive(true)
                 .build();
     }
 
-    public void updateProfile(String nickname, String profileImageUrl, List<String> preferredCategories) {
+    public void updateProfile(String name, String nickname, String phone, String profileImageUrl, List<String> preferredCategories) {
+        if (name != null) {
+            this.name = name;
+        }
         if (nickname != null) {
             this.nickname = nickname;
+        }
+        if (phone != null) {
+            this.phone = phone;
         }
         if (profileImageUrl != null) {
             this.profileImageUrl = profileImageUrl;
@@ -80,5 +94,9 @@ public class User extends BaseEntity {
 
     public void changeRole(UserRole role) {
         this.role = role;
+    }
+
+    public void deactivate() {
+        this.isActive = false;
     }
 }

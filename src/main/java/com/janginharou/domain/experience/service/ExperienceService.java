@@ -5,13 +5,17 @@ import com.janginharou.domain.artisan.repository.ArtisanRepository;
 import com.janginharou.domain.experience.dto.ExperienceRequest;
 import com.janginharou.domain.experience.dto.ExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
+import com.janginharou.domain.experience.entity.ExperienceImage;
 import com.janginharou.domain.experience.entity.ExperienceSchedule;
+import com.janginharou.domain.experience.repository.ExperienceImageRepository;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.experience.repository.ExperienceScheduleRepository;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
+import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
+import com.janginharou.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,8 +23,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -31,6 +37,8 @@ public class ExperienceService {
     private final ExperienceScheduleRepository experienceScheduleRepository;
     private final ReservationRepository reservationRepository;
     private final ArtisanRepository artisanRepository;
+    private final ExperienceImageRepository experienceImageRepository;
+    private final ReviewRepository reviewRepository;
 
     private static final Set<ReservationStatus> CAPACITY_HOLDING_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -52,9 +60,29 @@ public class ExperienceService {
 
     @Transactional(readOnly = true)
     public List<ExperienceResponse> getExperienceResponsesByArtisanId(Long artisanId) {
-        return experienceRepository.findByArtisanId(artisanId)
+        List<Experience> experiences = experienceRepository.findByArtisanId(artisanId);
+
+        // 체험 ID 목록 추출
+        List<Long> experienceIds = experiences.stream()
+                .map(Experience::getId)
+                .toList();
+
+        // 리뷰 통계 한 번에 조회
+        Map<Long, ReviewRepository.ReviewStats> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
                 .stream()
-                .map(this::toExperienceResponseWithSchedules)
+                .collect(java.util.stream.Collectors.toMap(
+                        ReviewRepository.ReviewStats::getExperienceId,
+                        stats -> stats
+                ));
+
+        // DTO 변환
+        return experiences.stream()
+                .map(experience -> {
+                    ReviewRepository.ReviewStats stats = reviewStatsMap.get(experience.getId());
+                    Double avgRating = stats != null ? stats.getAvgRating() : 0.0;
+                    Long reviewCount = stats != null ? stats.getReviewCount() : 0L;
+                    return toExperienceResponseWithSchedulesAndReviews(experience, avgRating, reviewCount);
+                })
                 .toList();
     }
 
@@ -65,9 +93,29 @@ public class ExperienceService {
 
     @Transactional(readOnly = true)
     public List<ExperienceResponse> getActiveExperienceResponses() {
-        return experienceRepository.findByIsActiveTrue()
+        List<Experience> experiences = experienceRepository.findByIsActiveTrue();
+
+        // 체험 ID 목록 추출
+        List<Long> experienceIds = experiences.stream()
+                .map(Experience::getId)
+                .toList();
+
+        // 리뷰 통계 한 번에 조회
+        Map<Long, ReviewRepository.ReviewStats> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
                 .stream()
-                .map(this::toExperienceResponseWithSchedules)
+                .collect(java.util.stream.Collectors.toMap(
+                        ReviewRepository.ReviewStats::getExperienceId,
+                        stats -> stats
+                ));
+
+        // DTO 변환
+        return experiences.stream()
+                .map(experience -> {
+                    ReviewRepository.ReviewStats stats = reviewStatsMap.get(experience.getId());
+                    Double avgRating = stats != null ? stats.getAvgRating() : 0.0;
+                    Long reviewCount = stats != null ? stats.getReviewCount() : 0L;
+                    return toExperienceResponseWithSchedulesAndReviews(experience, avgRating, reviewCount);
+                })
                 .toList();
     }
 
@@ -79,6 +127,10 @@ public class ExperienceService {
                 .stream()
                 .map(this::toScheduleResponse)
                 .toList();
+
+        // 리뷰 통계 조회
+        Double avgRating = reviewRepository.getAverageRating(experienceId);
+        Long reviewCount = reviewRepository.getReviewCount(experienceId);
 
         return ExperienceResponse.builder()
                 .id(experience.getId())
@@ -97,6 +149,10 @@ public class ExperienceService {
                 .locationLng(experience.getLocationLng())
                 .isActive(experience.getIsActive())
                 .schedules(schedules)
+                .images(toImageResponses(experience))
+                .tags(toTagList(experience))
+                .averageRating(avgRating != null ? avgRating : 0.0)
+                .reviewCount(reviewCount != null ? reviewCount : 0L)
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();
@@ -149,20 +205,77 @@ public class ExperienceService {
                 .map(experienceScheduleRepository::save)
                 .toList();
 
+        // 이미지 저장
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            ExperienceImage image = ExperienceImage.builder()
+                    .experience(savedExperience)
+                    .imageUrl(request.getImageUrl())
+                    .displayOrder(0)
+                    .build();
+            experienceImageRepository.save(image);
+        }
+
         return toExperienceResponse(savedExperience, savedSchedules);
     }
 
     @Transactional
-    public Experience updateExperience(Long experienceId, Experience updateData) {
-        // TODO: 체험 프로그램 수정 처리
+    public ExperienceResponse updateExperience(Long experienceId, Long artisanId, ExperienceRequest request) {
         Experience experience = getExperienceById(experienceId);
-        return experience;
+        validateArtisanOwnsExperience(experience, artisanId);
+
+        experience.update(
+                request.getTitle(),
+                request.getDescription(),
+                request.getCulturalStory(),
+                request.getCategory(),
+                request.getPrice(),
+                request.getDurationMinutes(),
+                request.getMaxParticipants(),
+                request.getDifficulty() != null ? request.getDifficulty().name() : null,
+                toList(request.getSupportedLanguages()),
+                request.getLocationAddress(),
+                request.getLocationLat(),
+                request.getLocationLng(),
+                request.getTags()
+        );
+
+        // 이미지 업데이트 (기존 삭제 후 새로 추가)
+        if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
+            experienceImageRepository.deleteAllByExperience(experience);
+            ExperienceImage image = ExperienceImage.builder()
+                    .experience(experience)
+                    .imageUrl(request.getImageUrl())
+                    .displayOrder(0)
+                    .build();
+            experienceImageRepository.save(image);
+        }
+
+        return toExperienceResponseWithSchedules(experience);
+    }
+
+    private void validateArtisanOwnsExperience(Experience experience, Long artisanId) {
+        if (!experience.getArtisan().getId().equals(artisanId)) {
+            throw new UnauthorizedException("You do not own this experience");
+        }
     }
 
     @Transactional
-    public void deleteExperience(Long experienceId) {
-        // TODO: 체험 프로그램 삭제 처리 (관련 예약 처리)
-        experienceRepository.deleteById(experienceId);
+    public void deleteExperience(Long experienceId, Long artisanId) {
+        Experience experience = getExperienceById(experienceId);
+        validateArtisanOwnsExperience(experience, artisanId);
+
+        // 활성 예약이 있는지 확인
+        boolean hasActiveReservations = reservationRepository.existsByExperienceIdAndStatusIn(
+                experienceId,
+                List.copyOf(CAPACITY_HOLDING_STATUSES)
+        );
+
+        if (hasActiveReservations) {
+            throw new InvalidRequestException("Cannot delete experience with active reservations");
+        }
+
+        // Hard delete
+        experienceRepository.delete(experience);
     }
 
     private ExperienceResponse.ScheduleResponse toScheduleResponse(ExperienceSchedule schedule) {
@@ -187,6 +300,12 @@ public class ExperienceService {
         return toExperienceResponse(experience, schedules);
     }
 
+    private ExperienceResponse toExperienceResponseWithSchedulesAndReviews(Experience experience, Double avgRating, Long reviewCount) {
+        List<ExperienceSchedule> schedules = experienceScheduleRepository
+                .findByExperienceIdAndIsActiveTrue(experience.getId());
+        return toExperienceResponseWithReviews(experience, schedules, avgRating, reviewCount);
+    }
+
     private ExperienceResponse toExperienceResponse(Experience experience, List<ExperienceSchedule> schedules) {
         return ExperienceResponse.builder()
                 .id(experience.getId())
@@ -205,9 +324,64 @@ public class ExperienceService {
                 .locationLng(experience.getLocationLng())
                 .isActive(experience.getIsActive())
                 .schedules(schedules.stream().map(this::toScheduleResponse).toList())
+                .images(toImageResponses(experience))
+                .tags(toTagList(experience))
+                .averageRating(0.0)
+                .reviewCount(0L)
                 .createdAt(experience.getCreatedAt())
                 .updatedAt(experience.getUpdatedAt())
                 .build();
+    }
+
+    private ExperienceResponse toExperienceResponseWithReviews(Experience experience, List<ExperienceSchedule> schedules, Double avgRating, Long reviewCount) {
+        return ExperienceResponse.builder()
+                .id(experience.getId())
+                .artisanId(experience.getArtisan().getId())
+                .title(experience.getTitle())
+                .description(experience.getDescription())
+                .culturalStory(experience.getCulturalStory())
+                .category(experience.getCategory())
+                .price(experience.getPrice())
+                .durationMinutes(experience.getDurationMinutes())
+                .maxParticipants(experience.getMaxParticipants())
+                .difficulty(experience.getDifficulty())
+                .supportedLanguages(experience.getSupportedLanguages())
+                .locationAddress(experience.getLocationAddress())
+                .locationLat(experience.getLocationLat())
+                .locationLng(experience.getLocationLng())
+                .isActive(experience.getIsActive())
+                .schedules(schedules.stream().map(this::toScheduleResponse).toList())
+                .images(toImageResponses(experience))
+                .tags(toTagList(experience))
+                .averageRating(avgRating != null ? avgRating : 0.0)
+                .reviewCount(reviewCount != null ? reviewCount : 0L)
+                .createdAt(experience.getCreatedAt())
+                .updatedAt(experience.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * Experience의 images 연관관계를 display_order 기준으로 정렬해 DTO 리스트로 변환한다.
+     * images가 비어있거나 null이면 빈 리스트를 반환한다(프론트에서 null-safe하게 처리하도록).
+     */
+    private List<ExperienceResponse.ImageResponse> toImageResponses(Experience experience) {
+        if (experience.getImages() == null) {
+            return List.of();
+        }
+        return experience.getImages().stream()
+                .sorted(Comparator.comparing(
+                        ExperienceImage::getDisplayOrder,
+                        Comparator.nullsFirst(Comparator.naturalOrder())
+                ))
+                .map(ExperienceResponse.ImageResponse::from)
+                .toList();
+    }
+
+    /**
+     * Experience의 tags를 반환한다. null이면 빈 리스트로 대체한다.
+     */
+    private List<String> toTagList(Experience experience) {
+        return experience.getTags() != null ? experience.getTags() : List.of();
     }
 
     private List<ExperienceRequest.ScheduleRequest> resolveSchedules(ExperienceRequest request) {

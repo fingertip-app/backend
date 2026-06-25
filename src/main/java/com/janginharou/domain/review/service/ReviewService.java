@@ -5,6 +5,8 @@ import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.review.dto.ReviewRequest;
+import com.janginharou.domain.review.dto.ReviewSummaryRequest;
+import com.janginharou.domain.review.dto.ReviewSummaryResponse;
 import com.janginharou.domain.review.entity.Review;
 import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.domain.user.repository.UserRepository;
@@ -156,5 +158,18 @@ public class ReviewService {
         } catch (ExternalServiceException e) {
             log.warn("Failed to apply AI summary to review {}: errorCode={}", review.getId(), e.getErrorCode());
         }
+    }
+
+    public ReviewSummaryResponse summarizeReview(ReviewSummaryRequest request) {
+        FastApiSummarizeResponse response = fastApiClient.summarizeReview(
+                request.getContent(),
+                request.getLocale() != null ? request.getLocale() : "ko"
+        );
+
+        return ReviewSummaryResponse.builder()
+                .summary(response.getSummary())
+                .sentimentScore(response.getSentimentScore().doubleValue())
+                .keywords(response.getKeywords())
+                .build();
     }
 }

@@ -2,12 +2,14 @@ package com.janginharou.global.exception;
 
 import com.janginharou.global.common.ApiResponse;
 import com.janginharou.global.security.ForbiddenException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -55,9 +57,24 @@ public class GlobalExceptionHandler {
                 .body(ApiResponse.error("VALIDATION_FAILED", message));
     }
 
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalArgument(IllegalArgumentException e) {
+        log.warn("IllegalArgumentException: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                .body(ApiResponse.error("INVALID_ARGUMENT", e.getMessage()));
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ApiResponse<Void>> handleIllegalState(IllegalStateException e) {
+        log.warn("IllegalStateException: {}", e.getMessage(), e);
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(ApiResponse.error("INVALID_STATE", e.getMessage()));
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleGenericException(Exception e) {
+        log.error("Unexpected error occurred: {}", e.getMessage(), e);
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(ApiResponse.error("INTERNAL_SERVER_ERROR", "An unexpected error occurred"));
+                .body(ApiResponse.error("INTERNAL_SERVER_ERROR", "An unexpected error occurred: " + e.getMessage()));
     }
 }

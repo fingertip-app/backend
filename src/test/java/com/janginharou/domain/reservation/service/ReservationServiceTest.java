@@ -10,6 +10,7 @@ import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.event.ReservationStatusChangedEvent;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
+import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
@@ -47,6 +48,9 @@ class ReservationServiceTest {
     private ExperienceScheduleRepository experienceScheduleRepository;
 
     @Mock
+    private ReviewRepository reviewRepository;
+
+    @Mock
     private ApplicationEventPublisher eventPublisher;
 
     private ReservationService reservationService;
@@ -63,6 +67,7 @@ class ReservationServiceTest {
                 userRepository,
                 experienceRepository,
                 experienceScheduleRepository,
+                reviewRepository,
                 eventPublisher
         );
 
@@ -170,9 +175,9 @@ class ReservationServiceTest {
 
         assertThat(reservationService.approveReservation(reservation.getId()).getStatus())
                 .isEqualTo(ReservationStatus.APPROVED);
-        assertThat(reservationService.processPayment(reservation.getId(), "payment-key").getStatus())
+        assertThat(reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "payment-key").getStatus())
                 .isEqualTo(ReservationStatus.PAID);
-        assertThat(reservationService.confirmReservation(reservation.getId()).getStatus())
+        assertThat(reservationService.confirmReservation(reservation.getId(), reservation.getUser().getId()).getStatus())
                 .isEqualTo(ReservationStatus.CONFIRMED);
     }
 
@@ -182,7 +187,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> reservationService.processPayment(reservation.getId(), "payment-key"))
+        assertThatThrownBy(() -> reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "payment-key"))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Invalid reservation status");
     }
@@ -226,7 +231,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
 
-        reservationService.cancelReservation(reservation.getId(), "개인 사정");
+        reservationService.cancelReservation(reservation.getId(), reservation.getUser().getId(), "개인 사정");
 
         verify(eventPublisher).publishEvent(any(ReservationStatusChangedEvent.class));
     }
