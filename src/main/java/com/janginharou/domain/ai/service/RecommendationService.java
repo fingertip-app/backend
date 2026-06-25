@@ -2,6 +2,7 @@ package com.janginharou.domain.ai.service;
 
 import com.janginharou.domain.ai.dto.AiRecommendationRequest;
 import com.janginharou.domain.ai.dto.AiRecommendationResponse;
+import com.janginharou.domain.ai.dto.ExplainSourceResponse;
 import com.janginharou.domain.ai.dto.RecommendedExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
@@ -14,6 +15,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -41,7 +45,9 @@ public class RecommendationService {
 
             return AiRecommendationResponse.builder()
                     .answer(aiResponse.getAnswer())
-                    .sources(List.of())
+                    .sources(safeList(aiResponse.getSources()).stream()
+                            .map(ExplainSourceResponse::from)
+                            .toList())
                     .matchingKeywords(safeList(aiResponse.getMatchingKeywords()))
                     .recommendedTags(safeList(aiResponse.getMatchingKeywords()))
                     .recommendedExperiences(recommendations)
@@ -81,13 +87,23 @@ public class RecommendationService {
 
     private List<RecommendedExperienceResponse> fetchExperiencesByIds(
             List<Long> experienceIds,
-            java.util.Map<String, String> reasons
+            Map<String, String> reasons
     ) {
         if (experienceIds == null || experienceIds.isEmpty()) {
             return List.of();
         }
 
-        return experienceRepository.findAllById(experienceIds).stream()
+        // 1. DB에서 Experience + Images를 fetch join으로 조회
+        List<Experience> experiences = experienceRepository.findAllByIdWithImages(experienceIds);
+
+        // 2. 빠른 조회를 위해 Map으로 변환
+        Map<Long, Experience> experienceMap = experiences.stream()
+                .collect(Collectors.toMap(Experience::getId, exp -> exp));
+
+        // 3. Python AI가 반환한 순서대로 재정렬하여 응답 생성
+        return experienceIds.stream()
+                .map(experienceMap::get)
+                .filter(Objects::nonNull)  // DB에 없는 ID는 제외
                 .map(exp -> {
                     String reason = reasons != null ? reasons.get(String.valueOf(exp.getId())) : null;
                     return RecommendedExperienceResponse.from(

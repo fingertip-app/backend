@@ -15,6 +15,7 @@ public class FastApiRecommendationResponse {
     private List<Long> recommendedExperienceIds;
     private Map<String, String> reasons;
     private List<String> matchingKeywords;
+    private List<FastApiSourceResponse> sources;
     private Boolean fallback;
     private String message;
 }
