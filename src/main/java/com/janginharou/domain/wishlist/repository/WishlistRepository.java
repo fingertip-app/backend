@@ -42,6 +42,8 @@ public interface WishlistRepository extends JpaRepository<Wishlist, Long> {
     @Query("SELECT COUNT(w) FROM Wishlist w WHERE w.experience.id = :experienceId")
     long countByExperienceId(@Param("experienceId") Long experienceId);
 
+    void deleteByExperienceId(Long experienceId);
+
     /**
      * 사용자 ID로 위시리스트 개수 조회
      */

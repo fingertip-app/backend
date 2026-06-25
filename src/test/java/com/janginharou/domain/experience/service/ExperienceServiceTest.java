@@ -2,12 +2,14 @@ package com.janginharou.domain.experience.service;
 
 import com.janginharou.domain.artisan.entity.Artisan;
 import com.janginharou.domain.artisan.repository.ArtisanRepository;
+import com.janginharou.domain.experience.dto.AddExperienceImagesRequest;
 import com.janginharou.domain.experience.dto.ExperienceRequest;
 import com.janginharou.domain.experience.dto.ExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.entity.ExperienceImage;
 import com.janginharou.domain.experience.entity.ExperienceDifficulty;
 import com.janginharou.domain.experience.entity.ExperienceSchedule;
+import com.janginharou.domain.experience.repository.ExperienceImageRepository;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.experience.repository.ExperienceScheduleRepository;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
@@ -32,6 +34,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -52,10 +55,16 @@ class ExperienceServiceTest {
     private ArtisanRepository artisanRepository;
 
     @Mock
-    private com.janginharou.domain.experience.repository.ExperienceImageRepository experienceImageRepository;
+    private ExperienceImageRepository experienceImageRepository;
 
     @Mock
     private com.janginharou.domain.review.repository.ReviewRepository reviewRepository;
+
+    @Mock
+    private com.janginharou.domain.wishlist.repository.WishlistRepository wishlistRepository;
+
+    @Mock
+    private com.janginharou.domain.cardnews.repository.CardNewsExperienceRepository cardNewsExperienceRepository;
 
     private ExperienceService experienceService;
     private Artisan artisan;
@@ -68,7 +77,9 @@ class ExperienceServiceTest {
                 reservationRepository,
                 artisanRepository,
                 experienceImageRepository,
-                reviewRepository
+                reviewRepository,
+                wishlistRepository,
+                cardNewsExperienceRepository
         );
 
         User user = User.builder()
@@ -102,6 +113,7 @@ class ExperienceServiceTest {
                 .supportedLanguages(Set.of("ko", "en"))
                 .locationAddress("서울 종로구")
                 .tags(List.of("매듭", "전통"))
+                .imageUrl("https://example.com/main.jpg")
                 .schedules(List.of(
                         ExperienceRequest.ScheduleRequest.builder()
                                 .scheduledAt(firstSlot)
@@ -152,11 +164,14 @@ class ExperienceServiceTest {
         assertThat(response.getArtisanId()).isEqualTo(artisan.getId());
         assertThat(response.getSchedules()).hasSize(2);
         assertThat(response.getSchedules()).extracting("remainingSlots").containsExactly(5, 3);
+        assertThat(response.getImages()).hasSize(1);
+        assertThat(response.getImages().get(0).getImageUrl()).isEqualTo("https://example.com/main.jpg");
 
         ArgumentCaptor<Experience> experienceCaptor = ArgumentCaptor.forClass(Experience.class);
         verify(experienceRepository).save(experienceCaptor.capture());
         assertThat(experienceCaptor.getValue().getTags()).containsExactly("공예", "매듭", "전통");
         verify(experienceScheduleRepository, times(2)).save(any(ExperienceSchedule.class));
+        verify(experienceImageRepository).save(any(ExperienceImage.class));
     }
 
     @Test
@@ -354,5 +369,91 @@ class ExperienceServiceTest {
         assertThat(responses.get(0).getImages())
                 .extracting("id")
                 .containsExactly(2L, 1L);
+    }
+
+    @Test
+    void appendsExperienceImagesAfterExistingDisplayOrder() {
+        ExperienceImage existingImage = ExperienceImage.builder()
+                .imageUrl("https://example.com/main.jpg")
+                .displayOrder(2)
+                .build();
+        Experience experience = Experience.builder()
+                .id(100L)
+                .artisan(artisan)
+                .title("전통 매듭 만들기")
+                .description("전통 매듭을 배웁니다")
+                .category("공예")
+                .price(BigDecimal.valueOf(30000))
+                .durationMinutes(90)
+                .maxParticipants(8)
+                .difficulty(ExperienceDifficulty.BEGINNER.name())
+                .supportedLanguages(List.of("ko", "en"))
+                .locationAddress("서울 종로구")
+                .images(new java.util.ArrayList<>(List.of(existingImage)))
+                .isActive(true)
+                .build();
+        AddExperienceImagesRequest request = AddExperienceImagesRequest.builder()
+                .imageUrls(List.of(" https://example.com/detail-1.jpg ", "https://example.com/detail-2.jpg"))
+                .build();
+
+        when(experienceRepository.findById(experience.getId())).thenReturn(Optional.of(experience));
+        when(experienceImageRepository.findMaxDisplayOrderByExperienceId(experience.getId())).thenReturn(2);
+        when(experienceScheduleRepository.findByExperienceIdAndIsActiveTrue(experience.getId())).thenReturn(List.of());
+
+        ExperienceResponse response = experienceService.addExperienceImages(experience.getId(), artisan.getId(), request);
+
+        assertThat(response.getImages())
+                .extracting("imageUrl")
+                .containsExactly(
+                        "https://example.com/main.jpg",
+                        "https://example.com/detail-1.jpg",
+                        "https://example.com/detail-2.jpg"
+                );
+        assertThat(response.getImages())
+                .extracting("displayOrder")
+                .containsExactly(2, 3, 4);
+        verify(experienceImageRepository).saveAll(anyList());
+    }
+
+    @Test
+    void deletesDependentRowsBeforeDeletingExperience() {
+        Experience experience = Experience.builder()
+                .id(100L)
+                .artisan(artisan)
+                .title("전통 매듭 만들기")
+                .description("전통 매듭을 배웁니다")
+                .category("공예")
+                .price(BigDecimal.valueOf(30000))
+                .durationMinutes(90)
+                .maxParticipants(8)
+                .difficulty(ExperienceDifficulty.BEGINNER.name())
+                .supportedLanguages(List.of("ko", "en"))
+                .locationAddress("서울 종로구")
+                .isActive(true)
+                .build();
+
+        when(experienceRepository.findById(experience.getId())).thenReturn(Optional.of(experience));
+
+        experienceService.deleteExperience(experience.getId(), artisan.getId());
+
+        org.mockito.InOrder ordered = inOrder(
+                reviewRepository,
+                reservationRepository,
+                wishlistRepository,
+                cardNewsExperienceRepository,
+                experienceScheduleRepository,
+                experienceImageRepository,
+                experienceRepository
+        );
+        ordered.verify(reviewRepository).deleteCollectionsByExperienceId(experience.getId());
+        ordered.verify(reviewRepository).deleteByExperienceId(experience.getId());
+        ordered.verify(reservationRepository).deleteByExperienceId(experience.getId());
+        ordered.verify(wishlistRepository).deleteByExperienceId(experience.getId());
+        ordered.verify(cardNewsExperienceRepository).deleteByExperienceId(experience.getId());
+        ordered.verify(experienceScheduleRepository).deleteByExperienceId(experience.getId());
+        ordered.verify(experienceImageRepository).deleteAllByExperienceId(experience.getId());
+        ordered.verify(experienceRepository).deleteSupportedLanguagesByExperienceId(experience.getId());
+        ordered.verify(experienceRepository).deleteTagsByExperienceId(experience.getId());
+        ordered.verify(experienceRepository).delete(experience);
     }
 }

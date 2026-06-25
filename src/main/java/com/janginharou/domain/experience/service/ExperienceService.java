@@ -2,6 +2,8 @@ package com.janginharou.domain.experience.service;
 
 import com.janginharou.domain.artisan.entity.Artisan;
 import com.janginharou.domain.artisan.repository.ArtisanRepository;
+import com.janginharou.domain.cardnews.repository.CardNewsExperienceRepository;
+import com.janginharou.domain.experience.dto.AddExperienceImagesRequest;
 import com.janginharou.domain.experience.dto.ExperienceRequest;
 import com.janginharou.domain.experience.dto.ExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
@@ -13,6 +15,7 @@ import com.janginharou.domain.experience.repository.ExperienceScheduleRepository
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
 import com.janginharou.domain.review.repository.ReviewRepository;
+import com.janginharou.domain.wishlist.repository.WishlistRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
 import com.janginharou.global.exception.UnauthorizedException;
@@ -39,6 +42,8 @@ public class ExperienceService {
     private final ArtisanRepository artisanRepository;
     private final ExperienceImageRepository experienceImageRepository;
     private final ReviewRepository reviewRepository;
+    private final WishlistRepository wishlistRepository;
+    private final CardNewsExperienceRepository cardNewsExperienceRepository;
 
     private static final Set<ReservationStatus> CAPACITY_HOLDING_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -208,10 +213,10 @@ public class ExperienceService {
         // 이미지 저장
         if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
             ExperienceImage image = ExperienceImage.builder()
-                    .experience(savedExperience)
                     .imageUrl(request.getImageUrl())
                     .displayOrder(0)
                     .build();
+            savedExperience.addImage(image);
             experienceImageRepository.save(image);
         }
 
@@ -253,6 +258,28 @@ public class ExperienceService {
         return toExperienceResponseWithSchedules(experience);
     }
 
+    @Transactional
+    public ExperienceResponse addExperienceImages(Long experienceId, Long artisanId, AddExperienceImagesRequest request) {
+        Experience experience = getExperienceById(experienceId);
+        validateArtisanOwnsExperience(experience, artisanId);
+
+        Integer maxDisplayOrder = experienceImageRepository.findMaxDisplayOrderByExperienceId(experienceId);
+        int nextDisplayOrder = maxDisplayOrder != null ? maxDisplayOrder + 1 : 0;
+        List<ExperienceImage> images = new ArrayList<>();
+        for (String imageUrl : request.getImageUrls()) {
+            String trimmedImageUrl = imageUrl.trim();
+            ExperienceImage image = ExperienceImage.builder()
+                    .imageUrl(trimmedImageUrl)
+                    .displayOrder(nextDisplayOrder++)
+                    .build();
+            experience.addImage(image);
+            images.add(image);
+        }
+        experienceImageRepository.saveAll(images);
+
+        return toExperienceResponseWithSchedules(experience);
+    }
+
     private void validateArtisanOwnsExperience(Experience experience, Long artisanId) {
         if (!experience.getArtisan().getId().equals(artisanId)) {
             throw new UnauthorizedException("You do not own this experience");
@@ -264,17 +291,15 @@ public class ExperienceService {
         Experience experience = getExperienceById(experienceId);
         validateArtisanOwnsExperience(experience, artisanId);
 
-        // 활성 예약이 있는지 확인
-        boolean hasActiveReservations = reservationRepository.existsByExperienceIdAndStatusIn(
-                experienceId,
-                List.copyOf(CAPACITY_HOLDING_STATUSES)
-        );
-
-        if (hasActiveReservations) {
-            throw new InvalidRequestException("Cannot delete experience with active reservations");
-        }
-
-        // Hard delete
+        reviewRepository.deleteCollectionsByExperienceId(experienceId);
+        reviewRepository.deleteByExperienceId(experienceId);
+        reservationRepository.deleteByExperienceId(experienceId);
+        wishlistRepository.deleteByExperienceId(experienceId);
+        cardNewsExperienceRepository.deleteByExperienceId(experienceId);
+        experienceScheduleRepository.deleteByExperienceId(experienceId);
+        experienceImageRepository.deleteAllByExperienceId(experienceId);
+        experienceRepository.deleteSupportedLanguagesByExperienceId(experienceId);
+        experienceRepository.deleteTagsByExperienceId(experienceId);
         experienceRepository.delete(experience);
     }
 
