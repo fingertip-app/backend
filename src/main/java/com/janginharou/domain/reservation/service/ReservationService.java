@@ -16,6 +16,7 @@ import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
+import com.janginharou.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -111,6 +112,10 @@ public class ReservationService {
                 .build();
         Reservation saved = reservationRepository.save(reservation);
         log.info("✅ [예약 생성] 저장 완료 - reservationId: {}, status: {}, totalPrice: {}", saved.getId(), saved.getStatus(), saved.getTotalPrice());
+
+        // 예약 신청 시 장인에게 알림 전송 (PENDING 상태 명시)
+        publishStatusChangeEvent(saved, null, "reservation created");
+
         return saved;
     }
 
@@ -157,8 +162,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation processPayment(Long reservationId, String paymentKey) {
+    public Reservation processPayment(Long reservationId, Long userId, String paymentKey) {
         Reservation reservation = getReservationById(reservationId);
+        validateUserOwnsReservation(reservation, userId);
         validateStatus(reservation, ReservationStatus.APPROVED);
         ReservationStatus oldStatus = reservation.getStatus();
         reservation.pay(paymentKey, createPaymentOrderId(reservation));
@@ -167,8 +173,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation confirmReservation(Long reservationId) {
+    public Reservation confirmReservation(Long reservationId, Long userId) {
         Reservation reservation = getReservationById(reservationId);
+        validateUserOwnsReservation(reservation, userId);
         validateStatus(reservation, ReservationStatus.PAID);
         ReservationStatus oldStatus = reservation.getStatus();
         reservation.confirm();
@@ -177,8 +184,9 @@ public class ReservationService {
     }
 
     @Transactional
-    public Reservation cancelReservation(Long reservationId, String cancellationReason) {
+    public Reservation cancelReservation(Long reservationId, Long userId, String cancellationReason) {
         Reservation reservation = getReservationById(reservationId);
+        validateUserOwnsReservation(reservation, userId);
         if (reservation.getStatus() == ReservationStatus.COMPLETED
                 || reservation.getStatus() == ReservationStatus.REJECTED
                 || reservation.getStatus() == ReservationStatus.CANCELLED) {
@@ -248,10 +256,17 @@ public class ReservationService {
         }
     }
 
+    private void validateUserOwnsReservation(Reservation reservation, Long userId) {
+        if (!reservation.getUser().getId().equals(userId)) {
+            throw new UnauthorizedException("You do not own this reservation");
+        }
+    }
+
     private void publishStatusChangeEvent(Reservation reservation, ReservationStatus oldStatus, String reason) {
         ReservationStatusChangedEvent event = ReservationStatusChangedEvent.of(
                 reservation.getId(),
-                reservation.getUser(), // User 객체 직접 전달로 리스너에서 DB 조회 불필요
+                reservation.getUser(), // 예약한 사용자
+                reservation.getExperience().getArtisan().getUser(), // 장인의 User
                 reservation.getExperience().getId(),
                 reservation.getExperience().getTitle(),
                 oldStatus,
@@ -291,5 +306,47 @@ public class ReservationService {
 
         ExperienceWithReviewsDto experienceDto = ExperienceWithReviewsDto.from(experience, rating, reviewCount);
         return ReservationResponse.from(reservation, experienceDto);
+    }
+
+    /**
+     * 여러 ReservationResponse 생성 (N+1 방지)
+     * @param reservations 예약 리스트
+     * @param includeExperience true면 체험 정보 포함 (평점/리뷰 포함)
+     */
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> buildReservationResponses(List<Reservation> reservations, boolean includeExperience) {
+        if (!includeExperience) {
+            return reservations.stream()
+                    .map(ReservationResponse::from)
+                    .toList();
+        }
+
+        // 모든 체험 ID 추출
+        List<Long> experienceIds = reservations.stream()
+                .map(r -> r.getExperience().getId())
+                .distinct()
+                .toList();
+
+        // 리뷰 통계 한 번에 조회
+        java.util.Map<Long, ReviewRepository.ReviewStats> reviewStatsMap =
+                reviewRepository.getReviewStatsByExperienceIds(experienceIds)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        ReviewRepository.ReviewStats::getExperienceId,
+                        stats -> stats
+                ));
+
+        // DTO 변환
+        return reservations.stream()
+                .map(reservation -> {
+                    Experience experience = reservation.getExperience();
+                    ReviewRepository.ReviewStats stats = reviewStatsMap.get(experience.getId());
+                    Double rating = stats != null ? stats.getAvgRating() : 0.0;
+                    Long reviewCount = stats != null ? stats.getReviewCount() : 0L;
+
+                    ExperienceWithReviewsDto experienceDto = ExperienceWithReviewsDto.from(experience, rating, reviewCount);
+                    return ReservationResponse.from(reservation, experienceDto);
+                })
+                .toList();
     }
 }

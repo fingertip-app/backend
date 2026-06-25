@@ -2,6 +2,7 @@ package com.janginharou.domain.reservation.controller;
 
 import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.dto.ReservationResponse;
+import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.service.ReservationService;
 import com.janginharou.global.common.ApiResponse;
@@ -34,12 +35,11 @@ public class ReservationController {
             @RequestParam(required = false) ReservationStatus status,
             @RequestParam(required = false) String include) {
         boolean includeExperience = "experience".equals(include);
-        List<ReservationResponse> responses = (status == null
+        List<Reservation> reservations = (status == null
                 ? reservationService.getReservationsByUserId(currentUser.id())
-                : reservationService.getReservationsByUserIdAndStatus(currentUser.id(), status))
-                .stream()
-                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
-                .toList();
+                : reservationService.getReservationsByUserIdAndStatus(currentUser.id(), status));
+        // N+1 방지: bulk 메서드 사용
+        List<ReservationResponse> responses = reservationService.buildReservationResponses(reservations, includeExperience);
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
@@ -62,10 +62,9 @@ public class ReservationController {
             @PathVariable Long userId,
             @RequestParam(required = false) String include) {
         boolean includeExperience = "experience".equals(include);
-        List<ReservationResponse> responses = reservationService.getReservationsByUserId(userId)
-                .stream()
-                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
-                .toList();
+        List<Reservation> reservations = reservationService.getReservationsByUserId(userId);
+        // N+1 방지: bulk 메서드 사용
+        List<ReservationResponse> responses = reservationService.buildReservationResponses(reservations, includeExperience);
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
@@ -123,26 +122,30 @@ public class ReservationController {
     @PostMapping("/{reservationId}/payment")
     @Operation(summary = "결제 처리", description = "예약 결제 처리 (토스페이먼츠)")
     public ResponseEntity<ApiResponse<ReservationResponse>> processPayment(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long reservationId,
             @RequestParam String paymentKey) {
-        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, paymentKey));
+        ReservationResponse response = ReservationResponse.from(reservationService.processPayment(reservationId, currentUser.id(), paymentKey));
         return ResponseEntity.ok(ApiResponse.ok(response, "Payment processed successfully"));
     }
 
     @PostMapping("/{reservationId}/confirm")
     @Operation(summary = "예약 최종 확정", description = "예약 최종 확정")
-    public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(@PathVariable Long reservationId) {
-        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId));
+    public ResponseEntity<ApiResponse<ReservationResponse>> confirmReservation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long reservationId) {
+        ReservationResponse response = ReservationResponse.from(reservationService.confirmReservation(reservationId, currentUser.id()));
         return ResponseEntity.ok(ApiResponse.ok(response, "Reservation confirmed successfully"));
     }
 
     @PostMapping("/{reservationId}/cancel")
     @Operation(summary = "예약 취소", description = "예약 취소 및 환불")
     public ResponseEntity<ApiResponse<ReservationResponse>> cancelReservation(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
             @PathVariable Long reservationId,
             @RequestParam(required = false) String cancellationReason) {
         ReservationResponse response = ReservationResponse.from(
-                reservationService.cancelReservation(reservationId, cancellationReason)
+                reservationService.cancelReservation(reservationId, currentUser.id(), cancellationReason)
         );
         return ResponseEntity.ok(ApiResponse.ok(response, "Reservation cancelled successfully"));
     }

@@ -51,6 +51,12 @@ class ExperienceServiceTest {
     @Mock
     private ArtisanRepository artisanRepository;
 
+    @Mock
+    private com.janginharou.domain.experience.repository.ExperienceImageRepository experienceImageRepository;
+
+    @Mock
+    private com.janginharou.domain.review.repository.ReviewRepository reviewRepository;
+
     private ExperienceService experienceService;
     private Artisan artisan;
 
@@ -60,7 +66,9 @@ class ExperienceServiceTest {
                 experienceRepository,
                 experienceScheduleRepository,
                 reservationRepository,
-                artisanRepository
+                artisanRepository,
+                experienceImageRepository,
+                reviewRepository
         );
 
         User user = User.builder()

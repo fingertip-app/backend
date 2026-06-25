@@ -28,18 +28,33 @@ public class ReservationEventListener {
                 event.getReservationId(), event.getOldStatus(), event.getNewStatus());
 
         try {
-            String title = generateNotificationTitle(event.getNewStatus(), event.getExperienceTitle());
-            String body = generateNotificationBody(event);
+            // PENDING 상태 (예약 신청)는 장인에게 알림
+            if (event.getNewStatus() == ReservationStatus.PENDING) {
+                String title = "새로운 예약 신청이 도착했습니다";
+                String body = String.format("'%s' 체험에 새로운 예약 신청이 있습니다. 확인해주세요.", event.getExperienceTitle());
 
-            Notification notification = Notification.builder()
-                    .user(event.getUser())
-                    .title(title)
-                    .body(body)
-                    .build();
+                Notification notification = Notification.builder()
+                        .user(event.getArtisanUser()) // 장인에게 알림
+                        .title(title)
+                        .body(body)
+                        .build();
 
-            notificationService.createNotification(notification);
+                notificationService.createNotification(notification);
+                log.info("Notification created for artisan: {}", event.getArtisanUser().getId());
+            } else {
+                // 다른 상태 변경은 예약한 사용자에게 알림
+                String title = generateNotificationTitle(event.getNewStatus(), event.getExperienceTitle());
+                String body = generateNotificationBody(event);
 
-            log.info("Notification created successfully for user: {}", event.getUser().getId());
+                Notification notification = Notification.builder()
+                        .user(event.getUser())
+                        .title(title)
+                        .body(body)
+                        .build();
+
+                notificationService.createNotification(notification);
+                log.info("Notification created for user: {}", event.getUser().getId());
+            }
         } catch (Exception e) {
             log.error("Failed to create notification for reservation: {}", event.getReservationId(), e);
             // 알림 실패가 예약 처리 자체를 방해하지 않도록 예외를 삼킴

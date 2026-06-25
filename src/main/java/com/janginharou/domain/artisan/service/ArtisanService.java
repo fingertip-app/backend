@@ -131,13 +131,18 @@ public class ArtisanService {
         // 장인 존재 여부 확인
         Artisan artisan = getArtisanById(artisanId);
 
-        // 신규 예약 개수 (PENDING 상태)
-        Long pendingReservationCount = experienceRepository.findByArtisanId(artisanId).stream()
-                .flatMap(experience -> reservationRepository.findByExperienceIdAndStatus(
-                        experience.getId(),
-                        ReservationStatus.PENDING
-                ).stream())
-                .count();
+        // 장인의 모든 체험 ID 조회
+        List<Long> experienceIds = experienceRepository.findByArtisanId(artisanId).stream()
+                .map(exp -> exp.getId())
+                .toList();
+
+        // 신규 예약 개수 (PENDING 상태) - bulk 쿼리로 한 번에 조회
+        Long pendingReservationCount = reservationRepository.countByExperienceIdsAndStatus(
+                experienceIds,
+                ReservationStatus.PENDING
+        ).stream()
+                .mapToLong(arr -> ((Number) arr[1]).longValue())
+                .sum();
 
         // 운영 중인 클래스 개수 (활성화된 체험)
         Long activeExperienceCount = (long) experienceRepository.findByArtisanIdAndIsActiveTrue(artisanId).size();
@@ -146,15 +151,16 @@ public class ArtisanService {
         LocalDateTime startOfMonth = LocalDate.now().withDayOfMonth(1).atStartOfDay();
         LocalDateTime endOfMonth = startOfMonth.plusMonths(1);
 
-        Long monthlyRevenue = experienceRepository.findByArtisanId(artisanId).stream()
-                .flatMap(experience -> reservationRepository.findByExperienceIdAndStatus(
-                        experience.getId(),
+        // COMPLETED 예약을 체험별로 조회 후 날짜 필터링
+        Long monthlyRevenue = experienceIds.stream()
+                .flatMap(expId -> reservationRepository.findByExperienceIdAndStatus(
+                        expId,
                         ReservationStatus.COMPLETED
                 ).stream())
                 .filter(reservation -> {
                     LocalDateTime completedAt = reservation.getUpdatedAt();
                     return completedAt != null &&
-                           completedAt.isAfter(startOfMonth) &&
+                           !completedAt.isBefore(startOfMonth) &&
                            completedAt.isBefore(endOfMonth);
                 })
                 .map(reservation -> reservation.getTotalPrice() != null ? reservation.getTotalPrice() : BigDecimal.ZERO)

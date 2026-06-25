@@ -27,7 +27,7 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 50)
     private String provider;  // kakao, google, apple, supabase
 
-    @Column(name = "provider_id", length = 255)
+    @Column(name = "provider_id", unique = true, length = 255)
     private String providerId;
 
     @Column(length = 100)

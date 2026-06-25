@@ -57,7 +57,8 @@ public class UserService {
     @Transactional
     public void deleteUser(Long userId) {
         User user = getUserById(userId);
-        userRepository.delete(user);
+        // Soft delete: isActive를 false로 설정
+        user.deactivate();
     }
 
     @Transactional(readOnly = true)

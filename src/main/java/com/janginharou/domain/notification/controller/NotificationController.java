@@ -8,11 +8,13 @@ import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.common.ApiResponse;
 import com.janginharou.global.exception.ResourceNotFoundException;
+import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,7 +37,10 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}")
     @Operation(summary = "사용자 알림 목록", description = "사용자의 모든 알림 조회 (최신 순)")
-    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUserNotifications(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUserNotifications(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long userId) {
+        notificationService.validateUserId(userId, currentUser.id());
         List<NotificationResponse> responses = notificationService.getNotificationsByUserId(userId)
                 .stream()
                 .map(NotificationResponse::from)
@@ -45,7 +50,10 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}/unread")
     @Operation(summary = "미읽은 알림", description = "사용자의 미읽은 알림 조회")
-    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnreadNotifications(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<List<NotificationResponse>>> getUnreadNotifications(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long userId) {
+        notificationService.validateUserId(userId, currentUser.id());
         List<NotificationResponse> responses = notificationService.getUnreadNotificationsByUserId(userId)
                 .stream()
                 .map(NotificationResponse::from)
@@ -55,7 +63,10 @@ public class NotificationController {
 
     @GetMapping("/user/{userId}/unread-count")
     @Operation(summary = "미읽은 알림 개수", description = "사용자의 미읽은 알림 개수 조회")
-    public ResponseEntity<ApiResponse<Long>> getUnreadNotificationCount(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Long>> getUnreadNotificationCount(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long userId) {
+        notificationService.validateUserId(userId, currentUser.id());
         long count = notificationService.getUnreadNotificationCount(userId);
         return ResponseEntity.ok(ApiResponse.ok(count));
     }
@@ -81,22 +92,29 @@ public class NotificationController {
 
     @PutMapping("/{notificationId}/read")
     @Operation(summary = "알림 읽음 표시", description = "알림을 읽음으로 표시")
-    public ResponseEntity<ApiResponse<NotificationResponse>> markAsRead(@PathVariable Long notificationId) {
-        NotificationResponse response = NotificationResponse.from(notificationService.markAsRead(notificationId));
+    public ResponseEntity<ApiResponse<NotificationResponse>> markAsRead(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long notificationId) {
+        NotificationResponse response = NotificationResponse.from(notificationService.markAsRead(notificationId, currentUser.id()));
         return ResponseEntity.ok(ApiResponse.ok(response, "Notification marked as read"));
     }
 
     @PutMapping("/user/{userId}/read-all")
     @Operation(summary = "모든 알림 읽음 표시", description = "사용자의 모든 미읽은 알림을 읽음으로 표시")
-    public ResponseEntity<ApiResponse<Void>> markAllAsRead(@PathVariable Long userId) {
+    public ResponseEntity<ApiResponse<Void>> markAllAsRead(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long userId) {
+        notificationService.validateUserId(userId, currentUser.id());
         notificationService.markAllAsRead(userId);
         return ResponseEntity.ok(ApiResponse.ok(null, "All notifications marked as read"));
     }
 
     @DeleteMapping("/{notificationId}")
     @Operation(summary = "알림 삭제", description = "알림 삭제")
-    public ResponseEntity<ApiResponse<Void>> deleteNotification(@PathVariable Long notificationId) {
-        notificationService.deleteNotification(notificationId);
+    public ResponseEntity<ApiResponse<Void>> deleteNotification(
+            @AuthenticationPrincipal AuthenticatedUser currentUser,
+            @PathVariable Long notificationId) {
+        notificationService.deleteNotification(notificationId, currentUser.id());
         return ResponseEntity.ok(ApiResponse.ok(null, "Notification deleted successfully"));
     }
 }

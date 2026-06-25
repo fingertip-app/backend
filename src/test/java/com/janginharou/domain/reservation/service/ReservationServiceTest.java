@@ -175,9 +175,9 @@ class ReservationServiceTest {
 
         assertThat(reservationService.approveReservation(reservation.getId()).getStatus())
                 .isEqualTo(ReservationStatus.APPROVED);
-        assertThat(reservationService.processPayment(reservation.getId(), "payment-key").getStatus())
+        assertThat(reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "payment-key").getStatus())
                 .isEqualTo(ReservationStatus.PAID);
-        assertThat(reservationService.confirmReservation(reservation.getId()).getStatus())
+        assertThat(reservationService.confirmReservation(reservation.getId(), reservation.getUser().getId()).getStatus())
                 .isEqualTo(ReservationStatus.CONFIRMED);
     }
 
@@ -187,7 +187,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
 
-        assertThatThrownBy(() -> reservationService.processPayment(reservation.getId(), "payment-key"))
+        assertThatThrownBy(() -> reservationService.processPayment(reservation.getId(), reservation.getUser().getId(), "payment-key"))
                 .isInstanceOf(InvalidRequestException.class)
                 .hasMessageContaining("Invalid reservation status");
     }
@@ -231,7 +231,7 @@ class ReservationServiceTest {
 
         when(reservationRepository.findById(reservation.getId())).thenReturn(Optional.of(reservation));
 
-        reservationService.cancelReservation(reservation.getId(), "개인 사정");
+        reservationService.cancelReservation(reservation.getId(), reservation.getUser().getId(), "개인 사정");
 
         verify(eventPublisher).publishEvent(any(ReservationStatusChangedEvent.class));
     }
