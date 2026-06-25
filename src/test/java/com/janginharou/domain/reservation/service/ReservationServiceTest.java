@@ -53,6 +53,9 @@ class ReservationServiceTest {
     @Mock
     private ApplicationEventPublisher eventPublisher;
 
+    @Mock
+    private com.janginharou.domain.qr.service.QrCodeService qrCodeService;
+
     private ReservationService reservationService;
 
     private User user;
@@ -68,7 +71,8 @@ class ReservationServiceTest {
                 experienceRepository,
                 experienceScheduleRepository,
                 reviewRepository,
-                eventPublisher
+                eventPublisher,
+                qrCodeService
         );
 
         user = User.builder()
