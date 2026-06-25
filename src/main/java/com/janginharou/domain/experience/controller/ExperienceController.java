@@ -1,5 +1,6 @@
 package com.janginharou.domain.experience.controller;
 
+import com.janginharou.domain.experience.dto.AddExperienceImagesRequest;
 import com.janginharou.domain.experience.dto.ExperienceRequest;
 import com.janginharou.domain.experience.dto.ExperienceResponse;
 import com.janginharou.domain.experience.service.ExperienceService;
@@ -71,6 +72,16 @@ public class ExperienceController {
             @Valid @RequestBody ExperienceRequest request) {
         ExperienceResponse response = experienceService.updateExperience(experienceId, artisanId, request);
         return ResponseEntity.ok(ApiResponse.ok(response, "Experience updated successfully"));
+    }
+
+    @PostMapping("/{experienceId}/images")
+    @Operation(summary = "체험 이미지 추가", description = "체험 상세 이미지를 기존 이미지 다음 순서로 추가")
+    public ResponseEntity<ApiResponse<ExperienceResponse>> addExperienceImages(
+            @PathVariable Long experienceId,
+            @RequestParam Long artisanId,
+            @Valid @RequestBody AddExperienceImagesRequest request) {
+        ExperienceResponse response = experienceService.addExperienceImages(experienceId, artisanId, request);
+        return ResponseEntity.ok(ApiResponse.ok(response, "Experience images added successfully"));
     }
 
     @DeleteMapping("/{experienceId}")

@@ -2,6 +2,7 @@ package com.janginharou.domain.experience.repository;
 
 import com.janginharou.domain.experience.entity.Experience;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -29,6 +30,18 @@ public interface ExperienceRepository extends JpaRepository<Experience, Long> {
     );
 
     List<Experience> findByArtisanIdAndIsActiveTrue(Long artisanId);
+
+    @Modifying
+    @Query(value = "DELETE FROM experience_supported_languages WHERE experience_id = :experienceId", nativeQuery = true)
+    void deleteSupportedLanguagesByExperienceId(@Param("experienceId") Long experienceId);
+
+    @Modifying
+    @Query(value = "DELETE FROM experience_tags WHERE experience_id = :experienceId", nativeQuery = true)
+    void deleteTagsByExperienceId(@Param("experienceId") Long experienceId);
+
+    @Modifying
+    @Query("DELETE FROM Experience e WHERE e.id = :experienceId")
+    void deleteByIdBulk(@Param("experienceId") Long experienceId);
 
     @Query("SELECT DISTINCT e FROM Experience e JOIN e.tags t WHERE t = :tag AND e.isActive = true")
     List<Experience> findByTagsContaining(@Param("tag") String tag);

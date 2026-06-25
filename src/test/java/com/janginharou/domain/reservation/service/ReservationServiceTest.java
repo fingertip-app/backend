@@ -10,6 +10,7 @@ import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.event.ReservationStatusChangedEvent;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
+import com.janginharou.domain.qr.service.QrCodeService;
 import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
@@ -54,7 +55,7 @@ class ReservationServiceTest {
     private ApplicationEventPublisher eventPublisher;
 
     @Mock
-    private com.janginharou.domain.qr.service.QrCodeService qrCodeService;
+    private QrCodeService qrCodeService;
 
     private ReservationService reservationService;
 

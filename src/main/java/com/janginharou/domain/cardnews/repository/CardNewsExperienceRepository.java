@@ -12,4 +12,6 @@ public interface CardNewsExperienceRepository extends JpaRepository<CardNewsExpe
     List<CardNewsExperience> findByCardNewsId(Long cardNewsId);
 
     void deleteByCardNewsId(Long cardNewsId);
+
+    void deleteByExperienceId(Long experienceId);
 }
