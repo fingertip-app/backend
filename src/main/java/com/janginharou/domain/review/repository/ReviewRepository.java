@@ -46,8 +46,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     /**
      * 여러 체험의 평점/리뷰수를 한 번에 조회 (N+1 방지)
-     * Map의 key: experienceId
-     * Map의 value: {avgRating: Double, reviewCount: Long}
      */
     @Query("""
             SELECT r.experience.id as experienceId,
@@ -57,5 +55,11 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
             WHERE r.experience.id IN :experienceIds
             GROUP BY r.experience.id
             """)
-    List<Map<String, Object>> getReviewStatsByExperienceIds(@Param("experienceIds") List<Long> experienceIds);
+    List<ReviewStats> getReviewStatsByExperienceIds(@Param("experienceIds") List<Long> experienceIds);
+
+    interface ReviewStats {
+        Long getExperienceId();
+        Double getAvgRating();
+        Long getReviewCount();
+    }
 }

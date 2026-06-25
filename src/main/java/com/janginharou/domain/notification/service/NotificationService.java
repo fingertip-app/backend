@@ -3,6 +3,7 @@ package com.janginharou.domain.notification.service;
 import com.janginharou.domain.notification.entity.Notification;
 import com.janginharou.domain.notification.repository.NotificationRepository;
 import com.janginharou.global.exception.ResourceNotFoundException;
+import com.janginharou.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -67,13 +68,13 @@ public class NotificationService {
 
     private void validateUserOwnsNotification(Notification notification, Long userId) {
         if (!notification.getUser().getId().equals(userId)) {
-            throw new com.janginharou.global.exception.UnauthorizedException("You do not own this notification");
+            throw new UnauthorizedException("You do not own this notification");
         }
     }
 
     public void validateUserId(Long pathUserId, Long authenticatedUserId) {
         if (!pathUserId.equals(authenticatedUserId)) {
-            throw new com.janginharou.global.exception.UnauthorizedException("You cannot access another user's notifications");
+            throw new UnauthorizedException("You cannot access another user's notifications");
         }
     }
 }

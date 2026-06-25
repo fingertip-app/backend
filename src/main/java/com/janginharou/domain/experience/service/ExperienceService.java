@@ -7,12 +7,15 @@ import com.janginharou.domain.experience.dto.ExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.entity.ExperienceImage;
 import com.janginharou.domain.experience.entity.ExperienceSchedule;
+import com.janginharou.domain.experience.repository.ExperienceImageRepository;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.experience.repository.ExperienceScheduleRepository;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
+import com.janginharou.domain.review.repository.ReviewRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
+import com.janginharou.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,8 +37,8 @@ public class ExperienceService {
     private final ExperienceScheduleRepository experienceScheduleRepository;
     private final ReservationRepository reservationRepository;
     private final ArtisanRepository artisanRepository;
-    private final com.janginharou.domain.experience.repository.ExperienceImageRepository experienceImageRepository;
-    private final com.janginharou.domain.review.repository.ReviewRepository reviewRepository;
+    private final ExperienceImageRepository experienceImageRepository;
+    private final ReviewRepository reviewRepository;
 
     private static final Set<ReservationStatus> CAPACITY_HOLDING_STATUSES = EnumSet.of(
             ReservationStatus.PENDING,
@@ -65,19 +68,19 @@ public class ExperienceService {
                 .toList();
 
         // 리뷰 통계 한 번에 조회
-        Map<Long, Map<String, Object>> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
+        Map<Long, ReviewRepository.ReviewStats> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        map -> ((Number) map.get("experienceId")).longValue(),
-                        map -> map
+                        ReviewRepository.ReviewStats::getExperienceId,
+                        stats -> stats
                 ));
 
         // DTO 변환
         return experiences.stream()
                 .map(experience -> {
-                    Map<String, Object> stats = reviewStatsMap.get(experience.getId());
-                    Double avgRating = stats != null ? (Double) stats.get("avgRating") : 0.0;
-                    Long reviewCount = stats != null ? ((Number) stats.get("reviewCount")).longValue() : 0L;
+                    ReviewRepository.ReviewStats stats = reviewStatsMap.get(experience.getId());
+                    Double avgRating = stats != null ? stats.getAvgRating() : 0.0;
+                    Long reviewCount = stats != null ? stats.getReviewCount() : 0L;
                     return toExperienceResponseWithSchedulesAndReviews(experience, avgRating, reviewCount);
                 })
                 .toList();
@@ -98,19 +101,19 @@ public class ExperienceService {
                 .toList();
 
         // 리뷰 통계 한 번에 조회
-        Map<Long, Map<String, Object>> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
+        Map<Long, ReviewRepository.ReviewStats> reviewStatsMap = reviewRepository.getReviewStatsByExperienceIds(experienceIds)
                 .stream()
                 .collect(java.util.stream.Collectors.toMap(
-                        map -> ((Number) map.get("experienceId")).longValue(),
-                        map -> map
+                        ReviewRepository.ReviewStats::getExperienceId,
+                        stats -> stats
                 ));
 
         // DTO 변환
         return experiences.stream()
                 .map(experience -> {
-                    Map<String, Object> stats = reviewStatsMap.get(experience.getId());
-                    Double avgRating = stats != null ? (Double) stats.get("avgRating") : 0.0;
-                    Long reviewCount = stats != null ? ((Number) stats.get("reviewCount")).longValue() : 0L;
+                    ReviewRepository.ReviewStats stats = reviewStatsMap.get(experience.getId());
+                    Double avgRating = stats != null ? stats.getAvgRating() : 0.0;
+                    Long reviewCount = stats != null ? stats.getReviewCount() : 0L;
                     return toExperienceResponseWithSchedulesAndReviews(experience, avgRating, reviewCount);
                 })
                 .toList();
@@ -238,7 +241,7 @@ public class ExperienceService {
 
         // 이미지 업데이트 (기존 삭제 후 새로 추가)
         if (request.getImageUrl() != null && !request.getImageUrl().isBlank()) {
-            experience.clearImages();
+            experienceImageRepository.deleteAllByExperience(experience);
             ExperienceImage image = ExperienceImage.builder()
                     .experience(experience)
                     .imageUrl(request.getImageUrl())
@@ -252,7 +255,7 @@ public class ExperienceService {
 
     private void validateArtisanOwnsExperience(Experience experience, Long artisanId) {
         if (!experience.getArtisan().getId().equals(artisanId)) {
-            throw new com.janginharou.global.exception.UnauthorizedException("You do not own this experience");
+            throw new UnauthorizedException("You do not own this experience");
         }
     }
 

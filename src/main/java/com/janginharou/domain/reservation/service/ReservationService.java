@@ -16,6 +16,7 @@ import com.janginharou.domain.user.entity.User;
 import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.exception.InvalidRequestException;
 import com.janginharou.global.exception.ResourceNotFoundException;
+import com.janginharou.global.exception.UnauthorizedException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -112,8 +113,8 @@ public class ReservationService {
         Reservation saved = reservationRepository.save(reservation);
         log.info("✅ [예약 생성] 저장 완료 - reservationId: {}, status: {}, totalPrice: {}", saved.getId(), saved.getStatus(), saved.getTotalPrice());
 
-        // 예약 신청 시 장인에게 알림 전송
-        publishStatusChangeEvent(saved, null, null);
+        // 예약 신청 시 장인에게 알림 전송 (PENDING 상태 명시)
+        publishStatusChangeEvent(saved, null, "reservation created");
 
         return saved;
     }
@@ -257,7 +258,7 @@ public class ReservationService {
 
     private void validateUserOwnsReservation(Reservation reservation, Long userId) {
         if (!reservation.getUser().getId().equals(userId)) {
-            throw new com.janginharou.global.exception.UnauthorizedException("You do not own this reservation");
+            throw new UnauthorizedException("You do not own this reservation");
         }
     }
 
