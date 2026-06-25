@@ -67,11 +67,11 @@ public class RecommendationService {
             request.getConversationHistory() != null
                 ? request.getConversationHistory().stream()
                     .map(msg -> new FastApiRecommendationRequest.ConversationMessage(
-                        msg.getRole(),
+                        msg.getRole().name().toLowerCase(),
                         msg.getContent()
                     ))
                     .toList()
-                : List.of();
+                : List.<FastApiRecommendationRequest.ConversationMessage>of();
 
         return new FastApiRecommendationRequest(
                 request.getFreeText(),
