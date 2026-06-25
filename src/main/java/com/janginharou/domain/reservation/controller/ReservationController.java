@@ -2,6 +2,7 @@ package com.janginharou.domain.reservation.controller;
 
 import com.janginharou.domain.reservation.dto.ReservationRequest;
 import com.janginharou.domain.reservation.dto.ReservationResponse;
+import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.service.ReservationService;
 import com.janginharou.global.common.ApiResponse;
@@ -34,12 +35,11 @@ public class ReservationController {
             @RequestParam(required = false) ReservationStatus status,
             @RequestParam(required = false) String include) {
         boolean includeExperience = "experience".equals(include);
-        List<ReservationResponse> responses = (status == null
+        List<Reservation> reservations = (status == null
                 ? reservationService.getReservationsByUserId(currentUser.id())
-                : reservationService.getReservationsByUserIdAndStatus(currentUser.id(), status))
-                .stream()
-                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
-                .toList();
+                : reservationService.getReservationsByUserIdAndStatus(currentUser.id(), status));
+        // N+1 방지: bulk 메서드 사용
+        List<ReservationResponse> responses = reservationService.buildReservationResponses(reservations, includeExperience);
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 
@@ -62,10 +62,9 @@ public class ReservationController {
             @PathVariable Long userId,
             @RequestParam(required = false) String include) {
         boolean includeExperience = "experience".equals(include);
-        List<ReservationResponse> responses = reservationService.getReservationsByUserId(userId)
-                .stream()
-                .map(reservation -> reservationService.buildReservationResponse(reservation, includeExperience))
-                .toList();
+        List<Reservation> reservations = reservationService.getReservationsByUserId(userId);
+        // N+1 방지: bulk 메서드 사용
+        List<ReservationResponse> responses = reservationService.buildReservationResponses(reservations, includeExperience);
         return ResponseEntity.ok(ApiResponse.ok(responses));
     }
 

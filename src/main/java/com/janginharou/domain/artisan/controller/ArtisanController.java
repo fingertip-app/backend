@@ -3,8 +3,10 @@ package com.janginharou.domain.artisan.controller;
 import com.janginharou.domain.artisan.dto.ArtisanRequest;
 import com.janginharou.domain.artisan.dto.ArtisanResponse;
 import com.janginharou.domain.artisan.dto.ArtisanStatsResponse;
+import com.janginharou.domain.artisan.entity.Artisan;
 import com.janginharou.domain.artisan.service.ArtisanService;
 import com.janginharou.global.common.ApiResponse;
+import com.janginharou.global.exception.ResourceNotFoundException;
 import com.janginharou.global.security.AuthenticatedUser;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -126,8 +128,11 @@ public class ArtisanController {
             @AuthenticationPrincipal AuthenticatedUser currentUser
     ) {
         // 현재 사용자의 장인 정보 조회
-        Long artisanId = artisanService.getArtisanByUserId(currentUser.id()).getId();
-        ArtisanStatsResponse stats = artisanService.getArtisanStats(artisanId);
+        Artisan artisan = artisanService.getArtisanByUserId(currentUser.id());
+        if (artisan == null) {
+            throw new ResourceNotFoundException("Artisan", "userId", currentUser.id());
+        }
+        ArtisanStatsResponse stats = artisanService.getArtisanStats(artisan.getId());
         return ResponseEntity.ok(ApiResponse.ok(stats));
     }
 }

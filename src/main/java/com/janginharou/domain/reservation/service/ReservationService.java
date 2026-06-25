@@ -307,4 +307,46 @@ public class ReservationService {
         ExperienceWithReviewsDto experienceDto = ExperienceWithReviewsDto.from(experience, rating, reviewCount);
         return ReservationResponse.from(reservation, experienceDto);
     }
+
+    /**
+     * 여러 ReservationResponse 생성 (N+1 방지)
+     * @param reservations 예약 리스트
+     * @param includeExperience true면 체험 정보 포함 (평점/리뷰 포함)
+     */
+    @Transactional(readOnly = true)
+    public List<ReservationResponse> buildReservationResponses(List<Reservation> reservations, boolean includeExperience) {
+        if (!includeExperience) {
+            return reservations.stream()
+                    .map(ReservationResponse::from)
+                    .toList();
+        }
+
+        // 모든 체험 ID 추출
+        List<Long> experienceIds = reservations.stream()
+                .map(r -> r.getExperience().getId())
+                .distinct()
+                .toList();
+
+        // 리뷰 통계 한 번에 조회
+        java.util.Map<Long, java.util.Map<String, Object>> reviewStatsMap =
+                reviewRepository.getReviewStatsByExperienceIds(experienceIds)
+                .stream()
+                .collect(java.util.stream.Collectors.toMap(
+                        map -> ((Number) map.get("experienceId")).longValue(),
+                        map -> map
+                ));
+
+        // DTO 변환
+        return reservations.stream()
+                .map(reservation -> {
+                    Experience experience = reservation.getExperience();
+                    java.util.Map<String, Object> stats = reviewStatsMap.get(experience.getId());
+                    Double rating = stats != null ? (Double) stats.get("avgRating") : 0.0;
+                    Long reviewCount = stats != null ? ((Number) stats.get("reviewCount")).longValue() : 0L;
+
+                    ExperienceWithReviewsDto experienceDto = ExperienceWithReviewsDto.from(experience, rating, reviewCount);
+                    return ReservationResponse.from(reservation, experienceDto);
+                })
+                .toList();
+    }
 }

@@ -82,18 +82,34 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // 팀원들이 각자 PC에서 Expo 웹(`expo start --web`)을 띄워서 테스트하므로,
-        // localhost와 사내 LAN IP(192.168.*, 172.16~31.*, 10.*)의 모든 포트를 허용합니다.
+        // 개발 환경: 와일드카드 패턴 사용 시 credentials=false 필요 (CORS 명세)
+        // 프로덕션: 정확한 origin 리스트 + credentials=true
         configuration.setAllowedOriginPatterns(Arrays.asList(
                 "http://localhost:*",
                 "http://127.0.0.1:*",
                 "http://192.168.*.*:*",
-                "http://172.*.*.*:*",
+                "http://172.16.*.*:*",  // RFC1918: 172.16.0.0/12
+                "http://172.17.*.*:*",
+                "http://172.18.*.*:*",
+                "http://172.19.*.*:*",
+                "http://172.20.*.*:*",
+                "http://172.21.*.*:*",
+                "http://172.22.*.*:*",
+                "http://172.23.*.*:*",
+                "http://172.24.*.*:*",
+                "http://172.25.*.*:*",
+                "http://172.26.*.*:*",
+                "http://172.27.*.*:*",
+                "http://172.28.*.*:*",
+                "http://172.29.*.*:*",
+                "http://172.30.*.*:*",
+                "http://172.31.*.*:*",
                 "http://10.*.*.*:*"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
-        configuration.setAllowCredentials(true);
+        // 개발: credentials=false (와일드카드와 호환)
+        configuration.setAllowCredentials(false);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
