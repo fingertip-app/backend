@@ -9,7 +9,9 @@ import com.janginharou.domain.ai.dto.AiRecommendationResponse;
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.global.client.FastApiClient;
-import com.janginharou.global.client.dto.FastApiExplainResponse;
+import com.janginharou.global.client.dto.FastApiRecommendationRequest;
+import com.janginharou.global.client.dto.FastApiRecommendationResponse;
+import com.janginharou.global.client.dto.FastApiSourceResponse;
 import com.janginharou.global.exception.ExternalServiceException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,12 +22,12 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,11 +61,14 @@ class RecommendationServiceTest {
                 null
         );
 
-        FastApiExplainResponse aiResponse = new FastApiExplainResponse(
+        FastApiRecommendationResponse aiResponse = new FastApiRecommendationResponse(
                 "친구와 함께 전통 공예 체험을 추천합니다.",
-                List.of(),
+                List.of(1L),
+                Map.of("1", "전통 공예를 직접 체험할 수 있습니다"),
                 List.of("공예", "매듭장"),
-                List.of("공예")
+                List.of(),
+                false,
+                null
         );
 
         Experience experience = Experience.builder()
@@ -76,9 +81,9 @@ class RecommendationServiceTest {
                 .tags(List.of("공예", "매듭"))
                 .build();
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenReturn(aiResponse);
-        when(experienceRepository.findByTagsContainingAny(anyList()))
+        when(experienceRepository.findAllByIdWithImages(List.of(1L)))
                 .thenReturn(List.of(experience));
 
         // Act
@@ -109,38 +114,40 @@ class RecommendationServiceTest {
                 "ko"
         );
 
-        FastApiExplainResponse aiResponse = new FastApiExplainResponse(
+        FastApiRecommendationResponse aiResponse = new FastApiRecommendationResponse(
                 "체험을 추천합니다.",
                 List.of(),
+                Map.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                false,
+                null
         );
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenReturn(aiResponse);
-        when(experienceRepository.findByTagsContainingAny(List.of("공예")))
-                .thenReturn(List.of());
 
         // Act
         recommendationService.recommend(request);
 
         // Assert
-        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(fastApiClient).explainCulture(queryCaptor.capture(), anyString());
-        String query = queryCaptor.getValue();
+        ArgumentCaptor<FastApiRecommendationRequest> requestCaptor =
+                ArgumentCaptor.forClass(FastApiRecommendationRequest.class);
+        verify(fastApiClient).getRecommendations(requestCaptor.capture());
+        FastApiRecommendationRequest capturedRequest = requestCaptor.getValue();
 
-        assertThat(query).contains("친구");
-        assertThat(query).contains("2명");
-        assertThat(query).contains("서울");
-        assertThat(query).contains("주말");
-        assertThat(query).contains("공예");
-        assertThat(query).contains("친구랑 조용한 체험을 하고 싶어요");
-        assertThat(query).contains("USER: 특별한 체험을 찾고 있어요");
-        assertThat(query).contains("ASSISTANT: 공예 체험이 좋을까요?");
+        assertThat(capturedRequest.getFreeText()).isEqualTo("친구랑 조용한 체험을 하고 싶어요");
+        assertThat(capturedRequest.getCompanionType()).isEqualTo("FRIEND");
+        assertThat(capturedRequest.getHeadCount()).isEqualTo(2);
+        assertThat(capturedRequest.getInterests()).containsExactly("공예");
+        assertThat(capturedRequest.getRegion()).isEqualTo("서울");
+        assertThat(capturedRequest.getTimePreference()).isEqualTo("WEEKEND");
+        assertThat(capturedRequest.getLocale()).isEqualTo("ko");
+        assertThat(capturedRequest.getConversationHistory()).hasSize(2);
     }
 
     @Test
-    void shouldRemoveDuplicateTagsFromPool() {
+    void shouldReturnRecommendedTagsFromAiResponse() {
         // Arrange
         AiRecommendationRequest request = new AiRecommendationRequest(
                 null,
@@ -153,11 +160,14 @@ class RecommendationServiceTest {
                 null
         );
 
-        FastApiExplainResponse aiResponse = new FastApiExplainResponse(
+        FastApiRecommendationResponse aiResponse = new FastApiRecommendationResponse(
                 "체험을 추천합니다.",
+                List.of(1L),
+                Map.of("1", "전통 공예 체험입니다"),
+                List.of("공예", "전통", "매듭"),
                 List.of(),
-                List.of("공예", "전통"),
-                List.of("공예")
+                false,
+                null
         );
 
         Experience exp1 = Experience.builder()
@@ -170,21 +180,20 @@ class RecommendationServiceTest {
                 .tags(List.of("공예"))
                 .build();
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenReturn(aiResponse);
-        when(experienceRepository.findByTagsContainingAny(List.of("공예", "매듭", "전통")))
+        when(experienceRepository.findAllByIdWithImages(List.of(1L)))
                 .thenReturn(List.of(exp1));
 
         // Act
         AiRecommendationResponse response = recommendationService.recommend(request);
 
         // Assert
-        // interests + matchingKeywords + recommendedCategories 중복 제거
-        assertThat(response.getRecommendedTags()).containsExactly("공예", "매듭", "전통");
+        assertThat(response.getRecommendedTags()).containsExactly("공예", "전통", "매듭");
     }
 
     @Test
-    void shouldExcludeBlankOptionalFields() {
+    void shouldHandleBlankOptionalFieldsGracefully() {
         // Arrange
         AiRecommendationRequest request = new AiRecommendationRequest(
                 "   ",  // blank freeText
@@ -197,33 +206,30 @@ class RecommendationServiceTest {
                 null
         );
 
-        FastApiExplainResponse aiResponse = new FastApiExplainResponse(
+        FastApiRecommendationResponse aiResponse = new FastApiRecommendationResponse(
                 "체험을 추천합니다.",
                 List.of(),
+                Map.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                false,
+                null
         );
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenReturn(aiResponse);
-        when(experienceRepository.findByTagsContainingAny(List.of("공예")))
-                .thenReturn(List.of());
 
         // Act
-        recommendationService.recommend(request);
+        AiRecommendationResponse response = recommendationService.recommend(request);
 
-        // Assert
-        ArgumentCaptor<String> queryCaptor = ArgumentCaptor.forClass(String.class);
-        verify(fastApiClient).explainCulture(queryCaptor.capture(), org.mockito.ArgumentMatchers.anyString());
-        String query = queryCaptor.getValue();
-
-        assertThat(query).doesNotContain("추가 요청");
-        assertThat(query).doesNotContain("에서");
+        // Assert - service should handle blank fields without error
+        assertThat(response).isNotNull();
+        assertThat(response.isFallback()).isFalse();
     }
 
     @Test
-    void shouldFilterByRegion() {
-        // Arrange
+    void shouldReturnExperiencesInOrderReturnedByAi() {
+        // Arrange - Python AI now handles region filtering
         AiRecommendationRequest request = new AiRecommendationRequest(
                 null,
                 CompanionType.FRIEND,
@@ -235,16 +241,20 @@ class RecommendationServiceTest {
                 null
         );
 
-        FastApiExplainResponse aiResponse = new FastApiExplainResponse(
-                "체험을 추천합니다.",
+        // Python AI already filtered by region and returns only Seoul experiences
+        FastApiRecommendationResponse aiResponse = new FastApiRecommendationResponse(
+                "서울의 체험을 추천합니다.",
+                List.of(1L, 3L),
+                Map.of("1", "첫 번째 추천", "3", "두 번째 추천"),
+                List.of("공예"),
                 List.of(),
-                List.of(),
-                List.of()
+                false,
+                null
         );
 
-        Experience seoulExp = Experience.builder()
+        Experience exp1 = Experience.builder()
                 .id(1L)
-                .title("서울 체험")
+                .title("서울 체험 1")
                 .locationAddress("서울 종로구")
                 .price(BigDecimal.valueOf(30000))
                 .durationMinutes(60)
@@ -252,32 +262,33 @@ class RecommendationServiceTest {
                 .tags(List.of("공예"))
                 .build();
 
-        Experience busan = Experience.builder()
-                .id(2L)
-                .title("부산 체험")
-                .locationAddress("부산 해운대구")
+        Experience exp3 = Experience.builder()
+                .id(3L)
+                .title("서울 체험 3")
+                .locationAddress("서울 강남구")
                 .price(BigDecimal.valueOf(30000))
                 .durationMinutes(60)
                 .maxParticipants(10)
                 .tags(List.of("공예"))
                 .build();
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenReturn(aiResponse);
-        when(experienceRepository.findByTagsContainingAny(List.of("공예")))
-                .thenReturn(List.of(seoulExp, busan));
+        when(experienceRepository.findAllByIdWithImages(List.of(1L, 3L)))
+                .thenReturn(List.of(exp1, exp3));
 
         // Act
         AiRecommendationResponse response = recommendationService.recommend(request);
 
-        // Assert
-        assertThat(response.getRecommendedExperiences()).hasSize(1)
-                .extracting("location").contains("서울 종로구");
+        // Assert - experiences should maintain AI's order
+        assertThat(response.getRecommendedExperiences()).hasSize(2);
+        assertThat(response.getRecommendedExperiences().get(0).getTitle()).isEqualTo("서울 체험 1");
+        assertThat(response.getRecommendedExperiences().get(1).getTitle()).isEqualTo("서울 체험 3");
     }
 
     @Test
-    void shouldFilterByHeadCount() {
-        // Arrange
+    void shouldReturnExperiencesWithReasonsFromAi() {
+        // Arrange - Python AI now handles headcount filtering
         AiRecommendationRequest request = new AiRecommendationRequest(
                 null,
                 CompanionType.FRIEND,
@@ -289,11 +300,15 @@ class RecommendationServiceTest {
                 null
         );
 
-        FastApiExplainResponse aiResponse = new FastApiExplainResponse(
-                "체험을 추천합니다.",
+        // Python AI already filtered by head count
+        FastApiRecommendationResponse aiResponse = new FastApiRecommendationResponse(
+                "8명이 참여 가능한 체험을 추천합니다.",
+                List.of(1L),
+                Map.of("1", "대인원이 함께 즐길 수 있는 공예 체험입니다"),
+                List.of("공예"),
                 List.of(),
-                List.of(),
-                List.of()
+                false,
+                null
         );
 
         Experience largeGroup = Experience.builder()
@@ -306,27 +321,18 @@ class RecommendationServiceTest {
                 .tags(List.of("공예"))
                 .build();
 
-        Experience smallGroup = Experience.builder()
-                .id(2L)
-                .title("소인원 체험")
-                .locationAddress("서울")
-                .price(BigDecimal.valueOf(30000))
-                .durationMinutes(60)
-                .maxParticipants(5)
-                .tags(List.of("공예"))
-                .build();
-
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenReturn(aiResponse);
-        when(experienceRepository.findByTagsContainingAny(List.of("공예")))
-                .thenReturn(List.of(largeGroup, smallGroup));
+        when(experienceRepository.findAllByIdWithImages(List.of(1L)))
+                .thenReturn(List.of(largeGroup));
 
         // Act
         AiRecommendationResponse response = recommendationService.recommend(request);
 
         // Assert
-        assertThat(response.getRecommendedExperiences()).hasSize(1)
-                .extracting("title").contains("대인원 체험");
+        assertThat(response.getRecommendedExperiences()).hasSize(1);
+        assertThat(response.getRecommendedExperiences().get(0).getMatchReason())
+                .isEqualTo("대인원이 함께 즐길 수 있는 공예 체험입니다");
     }
 
     @Test
@@ -354,7 +360,7 @@ class RecommendationServiceTest {
                 .isActive(true)
                 .build();
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenThrow(new ExternalServiceException("AI unavailable", "AI_UNAVAILABLE"));
         when(experienceRepository.findByIsActiveTrue())
                 .thenReturn(List.of(fallbackExp));
@@ -416,7 +422,7 @@ class RecommendationServiceTest {
                 .isActive(true)
                 .build();
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenThrow(new ExternalServiceException("AI unavailable", "AI_UNAVAILABLE"));
         when(experienceRepository.findByIsActiveTrue())
                 .thenReturn(List.of(firstExperience, insufficientCapacity, laterExperience));
@@ -455,7 +461,7 @@ class RecommendationServiceTest {
                 .isActive(true)
                 .build();
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenThrow(new ExternalServiceException("AI unavailable", "AI_UNAVAILABLE"));
         when(experienceRepository.findByIsActiveTrue())
                 .thenReturn(List.of(insufficientCapacity));
@@ -481,7 +487,7 @@ class RecommendationServiceTest {
                 null
         );
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenThrow(new ExternalServiceException("AI unavailable", "AI_UNAVAILABLE"));
         when(experienceRepository.findByIsActiveTrue())
                 .thenReturn(List.of());
@@ -494,7 +500,7 @@ class RecommendationServiceTest {
     }
 
     @Test
-    void shouldReturnEmptyExperiencesWhenNoTagMatch() {
+    void shouldReturnEmptyExperiencesWhenAiReturnsNoRecommendations() {
         // Arrange
         AiRecommendationRequest request = new AiRecommendationRequest(
                 null,
@@ -507,17 +513,18 @@ class RecommendationServiceTest {
                 null
         );
 
-        FastApiExplainResponse aiResponse = new FastApiExplainResponse(
+        FastApiRecommendationResponse aiResponse = new FastApiRecommendationResponse(
                 "매칭 체험이 없습니다.",
                 List.of(),
+                Map.of(),
                 List.of(),
-                List.of()
+                List.of(),
+                false,
+                null
         );
 
-        when(fastApiClient.explainCulture(anyString(), eq("ko")))
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
                 .thenReturn(aiResponse);
-        when(experienceRepository.findByTagsContainingAny(List.of("공예")))
-                .thenReturn(List.of());
 
         // Act
         AiRecommendationResponse response = recommendationService.recommend(request);
