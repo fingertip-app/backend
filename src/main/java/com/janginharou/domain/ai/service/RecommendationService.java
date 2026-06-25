@@ -1,23 +1,18 @@
 package com.janginharou.domain.ai.service;
 
 import com.janginharou.domain.ai.dto.AiRecommendationRequest;
-import com.janginharou.domain.ai.dto.AiRecommendationRequest.CompanionType;
-import com.janginharou.domain.ai.dto.AiRecommendationRequest.ConversationMessage;
-import com.janginharou.domain.ai.dto.AiRecommendationRequest.TimePreference;
 import com.janginharou.domain.ai.dto.AiRecommendationResponse;
-import com.janginharou.domain.ai.dto.ExplainSourceResponse;
 import com.janginharou.domain.ai.dto.RecommendedExperienceResponse;
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.global.client.FastApiClient;
-import com.janginharou.global.client.dto.FastApiExplainResponse;
+import com.janginharou.global.client.dto.FastApiRecommendationRequest;
+import com.janginharou.global.client.dto.FastApiRecommendationResponse;
 import com.janginharou.global.exception.ExternalServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.LinkedHashSet;
 import java.util.List;
 
 @Service
@@ -33,35 +28,22 @@ public class RecommendationService {
 
     @Transactional(readOnly = true)
     public AiRecommendationResponse recommend(AiRecommendationRequest request) {
-        String query = buildQuery(request);
-
         try {
-            FastApiExplainResponse aiResponse = fastApiClient.explainCulture(
-                    query,
-                    normalizeLocale(request.getLocale())
-            );
+            // Python AI 서버 호출 - Experience ID만 받음
+            FastApiRecommendationRequest fastApiRequest = buildFastApiRequest(request);
+            FastApiRecommendationResponse aiResponse = fastApiClient.getRecommendations(fastApiRequest);
 
-            List<String> matchingKeywords = safeList(aiResponse.getMatchingKeywords());
-            List<String> recommendedCategories = safeList(aiResponse.getRecommendedCategories());
-            List<String> recommendedTags = mergeTags(
-                    request.getInterests(),
-                    matchingKeywords,
-                    recommendedCategories
-            );
-
-            List<RecommendedExperienceResponse> recommendations = findRecommendedExperiences(
-                    request,
-                    recommendedTags,
-                    false
+            // Experience ID로 DB에서 전체 데이터 + 이미지 조회
+            List<RecommendedExperienceResponse> recommendations = fetchExperiencesByIds(
+                    aiResponse.getRecommendedExperienceIds(),
+                    aiResponse.getReasons()
             );
 
             return AiRecommendationResponse.builder()
                     .answer(aiResponse.getAnswer())
-                    .sources(safeList(aiResponse.getSources()).stream()
-                            .map(ExplainSourceResponse::from)
-                            .toList())
-                    .matchingKeywords(matchingKeywords)
-                    .recommendedTags(recommendedTags)
+                    .sources(List.of())
+                    .matchingKeywords(safeList(aiResponse.getMatchingKeywords()))
+                    .recommendedTags(safeList(aiResponse.getMatchingKeywords()))
                     .recommendedExperiences(recommendations)
                     .fallback(false)
                     .message(null)
@@ -74,61 +56,48 @@ public class RecommendationService {
         }
     }
 
-    private String buildQuery(AiRecommendationRequest request) {
-        StringBuilder sb = new StringBuilder();
+    private FastApiRecommendationRequest buildFastApiRequest(AiRecommendationRequest request) {
+        List<FastApiRecommendationRequest.ConversationMessage> history =
+            request.getConversationHistory() != null
+                ? request.getConversationHistory().stream()
+                    .map(msg -> new FastApiRecommendationRequest.ConversationMessage(
+                        msg.getRole(),
+                        msg.getContent()
+                    ))
+                    .toList()
+                : List.of();
 
-        // companionType + headCount
-        sb.append(formatCompanionType(request.getCompanionType()))
-                .append(" ")
-                .append(request.getHeadCount())
-                .append("명");
-
-        // region (optional)
-        if (isNotBlank(request.getRegion())) {
-            sb.append("이 ")
-                    .append(request.getRegion())
-                    .append("에서");
-        } else {
-            sb.append("이");
-        }
-
-        // timePreference (optional)
-        if (request.getTimePreference() != null) {
-            sb.append(" ")
-                    .append(formatTimePreference(request.getTimePreference()))
-                    .append("에");
-        }
-
-        sb.append(" 할 수 있는 체험을 추천해줘.\n");
-
-        // interests
-        sb.append("관심사는 ")
-                .append(String.join(", ", request.getInterests()))
-                .append("이야.\n");
-
-        // freeText (optional)
-        if (isNotBlank(request.getFreeText())) {
-            sb.append("추가 요청: ")
-                    .append(request.getFreeText())
-                    .append("\n");
-        }
-
-        // conversationHistory (last 2 messages, optional)
-        List<ConversationMessage> history = request.getConversationHistory();
-        if (history != null && !history.isEmpty()) {
-            sb.append("이전 대화:\n");
-            int startIndex = Math.max(0, history.size() - 2);
-            for (int i = startIndex; i < history.size(); i++) {
-                ConversationMessage msg = history.get(i);
-                sb.append(msg.getRole())
-                        .append(": ")
-                        .append(msg.getContent())
-                        .append("\n");
-            }
-        }
-
-        return sb.toString();
+        return new FastApiRecommendationRequest(
+                request.getFreeText(),
+                request.getCompanionType().name(),
+                request.getHeadCount(),
+                request.getInterests(),
+                request.getRegion(),
+                request.getTimePreference() != null ? request.getTimePreference().name() : "ANYTIME",
+                history,
+                normalizeLocale(request.getLocale())
+        );
     }
+
+    private List<RecommendedExperienceResponse> fetchExperiencesByIds(
+            List<Long> experienceIds,
+            java.util.Map<String, String> reasons
+    ) {
+        if (experienceIds == null || experienceIds.isEmpty()) {
+            return List.of();
+        }
+
+        return experienceRepository.findAllById(experienceIds).stream()
+                .map(exp -> {
+                    String reason = reasons != null ? reasons.get(String.valueOf(exp.getId())) : null;
+                    return RecommendedExperienceResponse.from(
+                            exp,
+                            reason != null ? reason : "AI가 추천한 체험입니다"
+                    );
+                })
+                .toList();
+    }
+
 
     private AiRecommendationResponse handleFallback(AiRecommendationRequest request) {
         // Find active experiences as fallback
@@ -166,47 +135,12 @@ public class RecommendationService {
                 .build();
     }
 
-    private List<RecommendedExperienceResponse> findRecommendedExperiences(
-            AiRecommendationRequest request,
-            List<String> tagPool,
-            boolean isFallback
-    ) {
-        if (tagPool.isEmpty()) {
-            return List.of();
-        }
-
-        List<Experience> candidates = experienceRepository.findByTagsContainingAny(tagPool);
-
-        String matchReason = isFallback ? "기본 활성 체험으로 추천" : "태그와 매칭";
-
-        return candidates.stream()
-                .filter(e -> isRegionMatching(e, request.getRegion()))
-                .filter(e -> e.getMaxParticipants() >= request.getHeadCount())
-                .limit(MAX_RECOMMENDED_EXPERIENCES)
-                .map(exp -> RecommendedExperienceResponse.from(exp, matchReason))
-                .toList();
-    }
-
-    private boolean isRegionMatching(Experience experience, String region) {
-        if (!isNotBlank(region)) {
-            return true;
-        }
-        String locationAddress = experience.getLocationAddress();
-        return locationAddress != null && locationAddress.contains(region);
-    }
 
     private boolean isRetryableError(ExternalServiceException e) {
         String errorCode = e.getErrorCode();
         return "AI_UNAVAILABLE".equals(errorCode) || "AI_TIMEOUT".equals(errorCode);
     }
 
-    private List<String> mergeTags(List<String> interests, List<String> matchingKeywords, List<String> recommendedCategories) {
-        LinkedHashSet<String> tags = new LinkedHashSet<>();
-        tags.addAll(interests);
-        tags.addAll(matchingKeywords);
-        tags.addAll(recommendedCategories);
-        return new ArrayList<>(tags);
-    }
 
     private String normalizeLocale(String locale) {
         return locale == null || locale.isBlank() ? DEFAULT_LOCALE : locale;
@@ -220,26 +154,4 @@ public class RecommendationService {
         return value != null && !value.isBlank();
     }
 
-    private String formatCompanionType(CompanionType type) {
-        return switch (type) {
-            case ALONE -> "혼자";
-            case FRIEND -> "친구";
-            case FAMILY -> "가족";
-            case COUPLE -> "연인";
-            case KIDS -> "아이";
-            case FOREIGN_GUEST -> "외국인 손님";
-            case OTHER -> "기타";
-        };
-    }
-
-    private String formatTimePreference(TimePreference preference) {
-        return switch (preference) {
-            case MORNING -> "아침";
-            case AFTERNOON -> "오후";
-            case EVENING -> "저녁";
-            case WEEKDAY -> "평일";
-            case WEEKEND -> "주말";
-            case ANYTIME -> "언제든";
-        };
-    }
 }

@@ -2,6 +2,8 @@ package com.janginharou.global.client;
 
 import com.janginharou.global.client.dto.FastApiExplainRequest;
 import com.janginharou.global.client.dto.FastApiExplainResponse;
+import com.janginharou.global.client.dto.FastApiRecommendationRequest;
+import com.janginharou.global.client.dto.FastApiRecommendationResponse;
 import com.janginharou.global.client.dto.FastApiSummarizeRequest;
 import com.janginharou.global.client.dto.FastApiSummarizeResponse;
 import com.janginharou.global.config.FastApiProperties;
@@ -52,6 +54,21 @@ public class FastApiClient {
         while (true) {
             try {
                 return requestSummarizeReview(content, locale);
+            } catch (RetryableProviderException e) {
+                if (attempt >= MAX_PROVIDER_RETRY_ATTEMPTS) {
+                    throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
+                }
+                attempt++;
+                sleepBeforeRetry();
+            }
+        }
+    }
+
+    public FastApiRecommendationResponse getRecommendations(FastApiRecommendationRequest request) {
+        int attempt = 0;
+        while (true) {
+            try {
+                return requestRecommendations(request);
             } catch (RetryableProviderException e) {
                 if (attempt >= MAX_PROVIDER_RETRY_ATTEMPTS) {
                     throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
@@ -119,6 +136,41 @@ public class FastApiClient {
                         throw new RetryableProviderException();
                     })
                     .body(FastApiSummarizeResponse.class);
+        } catch (ResourceAccessException e) {
+            if (hasTimeoutCause(e)) {
+                throw new ExternalServiceException("AI response timed out", e, "AI_TIMEOUT");
+            }
+            if (isConnectionResetCause(e)) {
+                throw new RetryableProviderException();
+            }
+            throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
+        } catch (RestClientException e) {
+            throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
+        }
+    }
+
+    private FastApiRecommendationResponse requestRecommendations(FastApiRecommendationRequest request) {
+        try {
+            return fastApiRestClient.post()
+                    .uri("/api/v1/ai/recommendations")
+                    .body(request)
+                    .retrieve()
+                    .onStatus(status -> status.value() == 422, (req, response) -> {
+                        throw new InvalidRequestException("AI query validation failed");
+                    })
+                    .onStatus(status -> status.value() == 400, (req, response) -> {
+                        throw new InvalidRequestException("AI query validation failed");
+                    })
+                    .onStatus(this::isConfigurationFailure, (req, response) -> {
+                        throw new ExternalServiceException(
+                                "AI service authentication is not configured correctly",
+                                "AI_CONFIG_ERROR"
+                        );
+                    })
+                    .onStatus(this::isRetryableProviderFailure, (req, response) -> {
+                        throw new RetryableProviderException();
+                    })
+                    .body(FastApiRecommendationResponse.class);
         } catch (ResourceAccessException e) {
             if (hasTimeoutCause(e)) {
                 throw new ExternalServiceException("AI response timed out", e, "AI_TIMEOUT");
