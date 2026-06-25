@@ -7,6 +7,7 @@ import com.janginharou.domain.user.repository.UserRepository;
 import com.janginharou.global.config.JwtTokenProvider;
 import com.janginharou.global.config.JwtTokenProvider.AuthTokenClaims;
 import com.janginharou.global.exception.UnauthorizedException;
+import com.janginharou.global.exception.AccountDeactivatedException;
 import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -45,6 +46,16 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             if (token != null) {
                 authenticate(token);
             }
+        } catch (AccountDeactivatedException e) {
+            SecurityContextHolder.clearContext();
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+            response.setCharacterEncoding("UTF-8");
+            objectMapper.writeValue(
+                    response.getWriter(),
+                    ApiResponse.error("ACCOUNT_DEACTIVATED", "탈퇴한 계정입니다. 다시 로그인할 수 없습니다.")
+            );
+            return;
         } catch (JwtException | IllegalArgumentException | UnauthorizedException e) {
             SecurityContextHolder.clearContext();
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
@@ -88,6 +99,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     );
                     return userRepository.save(User.supabaseUser(supabaseId, email, nickname, name, phone));
                 });
+
+        if (!Boolean.TRUE.equals(user.getIsActive())) {
+            throw new AccountDeactivatedException();
+        }
 
         AuthenticatedUser principal = new AuthenticatedUser(
                 user.getId(),
