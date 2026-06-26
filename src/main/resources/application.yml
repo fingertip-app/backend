@@ -60,7 +60,7 @@ spring:
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://aws-1-ap-northeast-2.pooler.supabase.com:5432/postgres}
     username: ${SPRING_DATASOURCE_USERNAME:postgres.eozmdmuzlhyanrwhyaqd}
-    password: ${SPRING_DATASOURCE_PASSWORD:fingertip987!}
+    password: ${SPRING_DATASOURCE_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: 3

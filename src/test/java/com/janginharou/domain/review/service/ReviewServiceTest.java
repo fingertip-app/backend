@@ -52,6 +52,10 @@ class ReviewServiceTest {
     private ReservationRepository reservationRepository;
 
     private ReviewService reviewService;
+    
+    @Mock
+    private ArtisanRepository artisanRepository;
+
 
     @BeforeEach
     void setUp() {
@@ -60,7 +64,8 @@ class ReviewServiceTest {
                 fastApiClient,
                 userRepository,
                 experienceRepository,
-                reservationRepository
+                reservationRepository,
+                artisanRepository
         );
     }
 
