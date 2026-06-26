@@ -1,5 +1,6 @@
 package com.janginharou.domain.review.controller;
 
+import com.janginharou.domain.review.dto.ReviewReplyRequest;
 import com.janginharou.domain.review.dto.ReviewRequest;
 import com.janginharou.domain.review.dto.ReviewResponse;
 import com.janginharou.domain.review.dto.ReviewSummaryRequest;
@@ -88,5 +89,34 @@ public class ReviewController {
             @Valid @RequestBody ReviewSummaryRequest request) {
         ReviewSummaryResponse response = reviewService.summarizeReview(request);
         return ResponseEntity.ok(ApiResponse.ok(response));
+    }
+
+    @PostMapping("/{reviewId}/reply")
+    @Operation(summary = "후기 답글 작성", description = "장인이 후기에 답글 작성 (본인 체험의 후기만 가능)")
+    public ResponseEntity<ApiResponse<ReviewResponse>> createReply(
+            @PathVariable Long reviewId,
+            @Valid @RequestBody ReviewReplyRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        ReviewResponse response = ReviewResponse.from(reviewService.createReply(currentUser.id(), reviewId, request));
+        return ResponseEntity.ok(ApiResponse.ok(response, "Reply created successfully"));
+    }
+
+    @PutMapping("/{reviewId}/reply")
+    @Operation(summary = "후기 답글 수정", description = "장인이 작성한 답글 수정")
+    public ResponseEntity<ApiResponse<ReviewResponse>> updateReply(
+            @PathVariable Long reviewId,
+            @Valid @RequestBody ReviewReplyRequest request,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        ReviewResponse response = ReviewResponse.from(reviewService.updateReply(currentUser.id(), reviewId, request));
+        return ResponseEntity.ok(ApiResponse.ok(response, "Reply updated successfully"));
+    }
+
+    @DeleteMapping("/{reviewId}/reply")
+    @Operation(summary = "후기 답글 삭제", description = "장인이 작성한 답글 삭제")
+    public ResponseEntity<ApiResponse<Void>> deleteReply(
+            @PathVariable Long reviewId,
+            @AuthenticationPrincipal AuthenticatedUser currentUser) {
+        reviewService.deleteReply(currentUser.id(), reviewId);
+        return ResponseEntity.ok(ApiResponse.ok(null, "Reply deleted successfully"));
     }
 }
