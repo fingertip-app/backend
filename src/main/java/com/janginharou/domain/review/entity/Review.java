@@ -72,6 +72,12 @@ public class Review {
     @Column(nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(columnDefinition = "TEXT")
+    private String replyContent;
+
+    @Column
+    private LocalDateTime repliedAt;
+
     public void applySummary(String summary, BigDecimal sentimentScore, List<String> keywords) {
         this.summary = summary;
         this.sentimentScore = sentimentScore;
@@ -86,5 +92,20 @@ public class Review {
         this.summary = null;
         this.sentimentScore = null;
         this.keywords = null;
+    }
+
+    public void createReply(String replyContent) {
+        this.replyContent = replyContent;
+        this.repliedAt = LocalDateTime.now();
+    }
+
+    public void updateReply(String replyContent) {
+        this.replyContent = replyContent;
+        this.repliedAt = LocalDateTime.now();
+    }
+
+    public void deleteReply() {
+        this.replyContent = null;
+        this.repliedAt = null;
     }
 }

@@ -29,6 +29,8 @@ public class ReviewResponse {
     private BigDecimal sentimentScore;
     private List<String> keywords;
     private LocalDateTime createdAt;
+    private String replyContent;
+    private LocalDateTime repliedAt;
 
     public static ReviewResponse from(Review review) {
         return ReviewResponse.builder()
@@ -45,6 +47,8 @@ public class ReviewResponse {
                 .sentimentScore(review.getSentimentScore())
                 .keywords(review.getKeywords())
                 .createdAt(review.getCreatedAt())
+                .replyContent(review.getReplyContent())
+                .repliedAt(review.getRepliedAt())
                 .build();
     }
 }

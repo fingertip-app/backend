@@ -4,6 +4,9 @@ import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.reservation.entity.Reservation;
 import com.janginharou.domain.reservation.entity.ReservationStatus;
 import com.janginharou.domain.reservation.repository.ReservationRepository;
+import com.janginharou.domain.artisan.entity.Artisan;
+import com.janginharou.domain.artisan.repository.ArtisanRepository;
+import com.janginharou.domain.review.dto.ReviewReplyRequest;
 import com.janginharou.domain.review.dto.ReviewRequest;
 import com.janginharou.domain.review.dto.ReviewSummaryRequest;
 import com.janginharou.domain.review.dto.ReviewSummaryResponse;
@@ -36,6 +39,7 @@ public class ReviewService {
     private final UserRepository userRepository;
     private final ExperienceRepository experienceRepository;
     private final ReservationRepository reservationRepository;
+    private final ArtisanRepository artisanRepository;
 
     @Transactional(readOnly = true)
     public Review getReviewById(Long reviewId) {
@@ -171,5 +175,54 @@ public class ReviewService {
                 .sentimentScore(response.getSentimentScore().doubleValue())
                 .keywords(response.getKeywords())
                 .build();
+    }
+
+    @Transactional
+    public Review createReply(Long userId, Long reviewId, ReviewReplyRequest request) {
+        Review review = getReviewById(reviewId);
+        Artisan artisan = validateArtisanOwnership(userId, review);
+
+        review.createReply(request.getReplyContent());
+        return review;
+    }
+
+    @Transactional
+    public Review updateReply(Long userId, Long reviewId, ReviewReplyRequest request) {
+        Review review = getReviewById(reviewId);
+        validateArtisanOwnership(userId, review);
+
+        if (review.getReplyContent() == null) {
+            throw new InvalidRequestException("답글이 존재하지 않습니다");
+        }
+
+        review.updateReply(request.getReplyContent());
+        return review;
+    }
+
+    @Transactional
+    public void deleteReply(Long userId, Long reviewId) {
+        Review review = getReviewById(reviewId);
+        validateArtisanOwnership(userId, review);
+
+        if (review.getReplyContent() == null) {
+            throw new InvalidRequestException("답글이 존재하지 않습니다");
+        }
+
+        review.deleteReply();
+    }
+
+    private Artisan validateArtisanOwnership(Long userId, Review review) {
+        Artisan artisan = artisanRepository.findByUserId(userId)
+                .orElseThrow(() -> new InvalidRequestException("장인 정보를 찾을 수 없습니다"));
+
+        if (!artisan.getIsVerified()) {
+            throw new InvalidRequestException("인증된 장인만 답글을 작성할 수 있습니다");
+        }
+
+        if (!review.getExperience().getArtisan().getId().equals(artisan.getId())) {
+            throw new InvalidRequestException("본인 체험의 후기에만 답글을 작성할 수 있습니다");
+        }
+
+        return artisan;
     }
 }
