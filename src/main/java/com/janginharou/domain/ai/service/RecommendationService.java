@@ -11,6 +11,7 @@ import com.janginharou.global.client.dto.FastApiRecommendationRequest;
 import com.janginharou.global.client.dto.FastApiRecommendationResponse;
 import com.janginharou.global.exception.ExternalServiceException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -19,6 +20,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class RecommendationService {
@@ -33,9 +35,15 @@ public class RecommendationService {
     @Transactional(readOnly = true)
     public AiRecommendationResponse recommend(AiRecommendationRequest request) {
         try {
+            log.info("Starting AI recommendation for companionType={}, headCount={}, interests={}",
+                    request.getCompanionType(), request.getHeadCount(), request.getInterests());
+
             // Python AI 서버 호출 - Experience ID만 받음
             FastApiRecommendationRequest fastApiRequest = buildFastApiRequest(request);
             FastApiRecommendationResponse aiResponse = fastApiClient.getRecommendations(fastApiRequest);
+
+            log.info("FastAPI returned {} recommended experiences",
+                    aiResponse.getRecommendedExperienceIds() != null ? aiResponse.getRecommendedExperienceIds().size() : 0);
 
             // Experience ID로 DB에서 전체 데이터 + 이미지 조회
             List<RecommendedExperienceResponse> recommendations = fetchExperiencesByIds(
@@ -55,7 +63,9 @@ public class RecommendationService {
                     .message(null)
                     .build();
         } catch (ExternalServiceException e) {
+            log.error("FastAPI call failed: errorCode={}, message={}", e.getErrorCode(), e.getMessage(), e);
             if (isRetryableError(e)) {
+                log.warn("Using fallback recommendations due to AI service error");
                 return handleFallback(request);
             }
             throw e;
@@ -73,8 +83,16 @@ public class RecommendationService {
                     .toList()
                 : List.<FastApiRecommendationRequest.ConversationMessage>of();
 
+        // freeText가 null이면 interests와 companionType으로 기본값 생성
+        String freeText = request.getFreeText();
+        if (freeText == null || freeText.isBlank()) {
+            freeText = String.format("%s와 함께 %s 체험을 찾고 있습니다",
+                    getCompanionDisplayName(request.getCompanionType()),
+                    request.getInterests().isEmpty() ? "전통 공예" : String.join(", ", request.getInterests()));
+        }
+
         return new FastApiRecommendationRequest(
-                request.getFreeText(),
+                freeText,
                 request.getCompanionType().name(),
                 request.getHeadCount(),
                 request.getInterests(),
@@ -83,6 +101,18 @@ public class RecommendationService {
                 history,
                 normalizeLocale(request.getLocale())
         );
+    }
+
+    private String getCompanionDisplayName(AiRecommendationRequest.CompanionType type) {
+        return switch (type) {
+            case ALONE -> "혼자";
+            case FRIEND -> "친구";
+            case FAMILY -> "가족";
+            case COUPLE -> "연인";
+            case KIDS -> "아이";
+            case FOREIGN_GUEST -> "외국인 게스트";
+            case OTHER -> "함께";
+        };
     }
 
     private List<RecommendedExperienceResponse> fetchExperiencesByIds(

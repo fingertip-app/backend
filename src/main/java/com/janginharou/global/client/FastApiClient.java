@@ -10,6 +10,7 @@ import com.janginharou.global.config.FastApiProperties;
 import com.janginharou.global.exception.ExternalServiceException;
 import com.janginharou.global.exception.InvalidRequestException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
@@ -19,6 +20,7 @@ import org.springframework.web.client.RestClientException;
 import java.net.SocketTimeoutException;
 import java.net.http.HttpTimeoutException;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class FastApiClient {
@@ -151,27 +153,34 @@ public class FastApiClient {
 
     private FastApiRecommendationResponse requestRecommendations(FastApiRecommendationRequest request) {
         try {
+            log.debug("Calling FastAPI /api/v1/ai/recommendations with request: {}", request);
+
             return fastApiRestClient.post()
                     .uri("/api/v1/ai/recommendations")
                     .body(request)
                     .retrieve()
                     .onStatus(status -> status.value() == 422, (req, response) -> {
+                        log.error("FastAPI validation failed (422): {}", response.getStatusText());
                         throw new InvalidRequestException("AI query validation failed");
                     })
                     .onStatus(status -> status.value() == 400, (req, response) -> {
+                        log.error("FastAPI bad request (400): {}", response.getStatusText());
                         throw new InvalidRequestException("AI query validation failed");
                     })
                     .onStatus(this::isConfigurationFailure, (req, response) -> {
+                        log.error("FastAPI auth failed: {}", response.getStatusCode());
                         throw new ExternalServiceException(
                                 "AI service authentication is not configured correctly",
                                 "AI_CONFIG_ERROR"
                         );
                     })
                     .onStatus(this::isRetryableProviderFailure, (req, response) -> {
+                        log.warn("FastAPI retryable failure: {}", response.getStatusCode());
                         throw new RetryableProviderException();
                     })
                     .body(FastApiRecommendationResponse.class);
         } catch (ResourceAccessException e) {
+            log.error("FastAPI connection failed", e);
             if (hasTimeoutCause(e)) {
                 throw new ExternalServiceException("AI response timed out", e, "AI_TIMEOUT");
             }
@@ -180,6 +189,7 @@ public class FastApiClient {
             }
             throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
         } catch (RestClientException e) {
+            log.error("FastAPI RestClient error", e);
             throw new ExternalServiceException("AI service is unavailable", e, "AI_UNAVAILABLE");
         }
     }

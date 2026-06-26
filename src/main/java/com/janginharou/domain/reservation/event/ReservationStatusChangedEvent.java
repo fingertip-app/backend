@@ -26,6 +26,7 @@ public class ReservationStatusChangedEvent {
     private final ReservationStatus newStatus;
     private final String reason; // 거절/취소 사유
     private final LocalDateTime timestamp;
+    private final boolean cancelledByArtisan; // 장인이 취소한 경우 true
 
     public static ReservationStatusChangedEvent of(
             Long reservationId,
@@ -47,6 +48,31 @@ public class ReservationStatusChangedEvent {
                 .newStatus(newStatus)
                 .reason(reason)
                 .timestamp(LocalDateTime.now())
+                .cancelledByArtisan(false)
+                .build();
+    }
+
+    public static ReservationStatusChangedEvent ofArtisanCancel(
+            Long reservationId,
+            User user,
+            User artisanUser,
+            Long experienceId,
+            String experienceTitle,
+            ReservationStatus oldStatus,
+            ReservationStatus newStatus,
+            String reason
+    ) {
+        return ReservationStatusChangedEvent.builder()
+                .reservationId(reservationId)
+                .user(user)
+                .artisanUser(artisanUser)
+                .experienceId(experienceId)
+                .experienceTitle(experienceTitle)
+                .oldStatus(oldStatus)
+                .newStatus(newStatus)
+                .reason(reason)
+                .timestamp(LocalDateTime.now())
+                .cancelledByArtisan(true)
                 .build();
     }
 }
