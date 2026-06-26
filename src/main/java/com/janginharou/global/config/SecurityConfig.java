@@ -104,7 +104,8 @@ public class SecurityConfig {
                 "http://172.29.*.*:*",
                 "http://172.30.*.*:*",
                 "http://172.31.*.*:*",
-                "http://10.*.*.*:*"
+                "http://10.*.*.*:*",
+                "https://*.vercel.app"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(Collections.singletonList("*"));
