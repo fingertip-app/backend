@@ -16,6 +16,17 @@ public class FastApiRecommendationRequest {
     private String timePreference;
     private List<ConversationMessage> conversationHistory;
     private String locale;
+    private Integer maxPrice;
+    private Integer maxDurationMinutes;
+    private String technique;
+    private Long heritageItemId;
+
+    public FastApiRecommendationRequest(String freeText, String companionType, int headCount,
+            List<String> interests, String region, String timePreference,
+            List<ConversationMessage> conversationHistory, String locale) {
+        this(freeText, companionType, headCount, interests, region, timePreference,
+                conversationHistory, locale, null, null, null, null);
+    }
 
     @Getter
     @AllArgsConstructor

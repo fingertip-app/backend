@@ -1,5 +1,7 @@
 package com.janginharou.domain.review.service;
 
+import com.janginharou.domain.artisan.repository.ArtisanRepository;
+
 import com.janginharou.domain.experience.entity.Experience;
 import com.janginharou.domain.experience.repository.ExperienceRepository;
 import com.janginharou.domain.reservation.entity.Reservation;
