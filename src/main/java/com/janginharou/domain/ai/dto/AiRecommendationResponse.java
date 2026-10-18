@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Getter;
 
 import java.util.List;
+import java.util.Map;
 
 @Getter
 @Builder
@@ -23,4 +24,6 @@ public class AiRecommendationResponse {
 
     @Schema(description = "fallback 안내 문구. fallback=false면 null")
     private String message;
+    private Map<String, Object> appliedFilters;
+    private Map<String, List<Map<String, Object>>> connectionEvidence;
 }

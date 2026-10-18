@@ -34,6 +34,40 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class RecommendationServiceTest {
 
+    @Test
+    void forwardsHardConditionsAndReturnsConnectionEvidence() {
+        AiRecommendationRequest request = new AiRecommendationRequest(
+                "상감 배우기", CompanionType.FRIEND, 2, List.of("도자기"), "경기",
+                null, null, "ko", 30000, 90, "상감", 7L);
+        Map<String, Object> filters = Map.of("maxPrice", 30000, "technique", "상감");
+        Map<String, List<Map<String, Object>>> evidence = Map.of(
+                "1", List.of(Map.of("technique", "상감", "sourceUrl", "local://test")));
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
+                .thenReturn(new FastApiRecommendationResponse("결과", List.of(), Map.of(),
+                        List.of(), List.of(), false, null, filters, evidence));
+        AiRecommendationResponse response = recommendationService.recommend(request);
+        ArgumentCaptor<FastApiRecommendationRequest> captor = ArgumentCaptor.forClass(FastApiRecommendationRequest.class);
+        verify(fastApiClient).getRecommendations(captor.capture());
+        assertThat(captor.getValue().getMaxPrice()).isEqualTo(30000);
+        assertThat(captor.getValue().getMaxDurationMinutes()).isEqualTo(90);
+        assertThat(captor.getValue().getTechnique()).isEqualTo("상감");
+        assertThat(captor.getValue().getHeritageItemId()).isEqualTo(7L);
+        assertThat(response.getAppliedFilters()).isEqualTo(filters);
+        assertThat(response.getConnectionEvidence()).isEqualTo(evidence);
+    }
+
+    @Test
+    void doesNotRelaxUnverifiedRegionDuringFallback() {
+        AiRecommendationRequest request = new AiRecommendationRequest(
+                null, CompanionType.FRIEND, 2, List.of("도자기"), "서울", null, null, "ko");
+        when(fastApiClient.getRecommendations(any(FastApiRecommendationRequest.class)))
+                .thenThrow(new ExternalServiceException("AI unavailable", "AI_UNAVAILABLE"));
+        when(experienceRepository.findByIsActiveTrue()).thenReturn(List.of(
+                Experience.builder().id(1L).maxParticipants(4).locationAddress("경기도 이천시").build()));
+        assertThatThrownBy(() -> recommendationService.recommend(request))
+                .isInstanceOf(ExternalServiceException.class);
+    }
+
     @Mock
     private FastApiClient fastApiClient;
 

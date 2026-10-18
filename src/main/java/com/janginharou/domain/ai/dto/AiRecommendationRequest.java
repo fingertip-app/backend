@@ -44,6 +44,25 @@ public class AiRecommendationRequest {
     @Size(max = 10)
     private String locale;
 
+    @Min(0)
+    private Integer maxPrice;
+
+    @Min(1)
+    private Integer maxDurationMinutes;
+
+    @Size(min = 1, max = 100)
+    private String technique;
+
+    @Min(1)
+    private Long heritageItemId;
+
+    public AiRecommendationRequest(String freeText, CompanionType companionType, Integer headCount,
+            List<String> interests, String region, TimePreference timePreference,
+            List<ConversationMessage> conversationHistory, String locale) {
+        this(freeText, companionType, headCount, interests, region, timePreference,
+                conversationHistory, locale, null, null, null, null);
+    }
+
     @Getter
     @NoArgsConstructor
     @AllArgsConstructor

@@ -41,6 +41,9 @@ public class RecommendationService {
             // Python AI 서버 호출 - Experience ID만 받음
             FastApiRecommendationRequest fastApiRequest = buildFastApiRequest(request);
             FastApiRecommendationResponse aiResponse = fastApiClient.getRecommendations(fastApiRequest);
+            if (Boolean.TRUE.equals(aiResponse.getFallback())) {
+                throw new ExternalServiceException("AI recommendation unavailable", "AI_UNAVAILABLE");
+            }
 
             log.info("FastAPI returned {} recommended experiences",
                     aiResponse.getRecommendedExperienceIds() != null ? aiResponse.getRecommendedExperienceIds().size() : 0);
@@ -59,8 +62,10 @@ public class RecommendationService {
                     .matchingKeywords(safeList(aiResponse.getMatchingKeywords()))
                     .recommendedTags(safeList(aiResponse.getMatchingKeywords()))
                     .recommendedExperiences(recommendations)
+                    .appliedFilters(aiResponse.getAppliedFilters() != null ? aiResponse.getAppliedFilters() : Map.of())
+                    .connectionEvidence(aiResponse.getConnectionEvidence() != null ? aiResponse.getConnectionEvidence() : Map.of())
                     .fallback(false)
-                    .message(null)
+                    .message(aiResponse.getMessage())
                     .build();
         } catch (ExternalServiceException e) {
             log.error("FastAPI call failed: errorCode={}, message={}", e.getErrorCode(), e.getMessage(), e);
@@ -99,7 +104,11 @@ public class RecommendationService {
                 request.getRegion(),
                 request.getTimePreference() != null ? request.getTimePreference().name() : "ANYTIME",
                 history,
-                normalizeLocale(request.getLocale())
+                normalizeLocale(request.getLocale()),
+                request.getMaxPrice(),
+                request.getMaxDurationMinutes(),
+                request.getTechnique(),
+                request.getHeritageItemId()
         );
     }
 
@@ -146,6 +155,12 @@ public class RecommendationService {
 
 
     private AiRecommendationResponse handleFallback(AiRecommendationRequest request) {
+        // Python extracts free-text constraints. On failure Spring cannot safely
+        // reconstruct those conditions, so do not silently replace the results.
+        if (request.getFreeText() != null && !request.getFreeText().isBlank()) {
+            throw new ExternalServiceException(
+                    "Cannot verify free-text constraints during AI fallback", "AI_UNAVAILABLE");
+        }
         // Find active experiences as fallback
         List<Experience> fallbackExperiences = experienceRepository.findByIsActiveTrue();
 
@@ -157,6 +172,13 @@ public class RecommendationService {
         }
 
         List<RecommendedExperienceResponse> recommendations = fallbackExperiences.stream()
+                .filter(e -> request.getTechnique() == null && request.getHeritageItemId() == null)
+                .filter(e -> request.getRegion() == null || request.getRegion().isBlank()
+                        || "전국".equals(request.getRegion().strip()))
+                .filter(e -> request.getMaxPrice() == null || (e.getPrice() != null
+                        && e.getPrice().compareTo(java.math.BigDecimal.valueOf(request.getMaxPrice())) <= 0))
+                .filter(e -> request.getMaxDurationMinutes() == null || (e.getDurationMinutes() != null
+                        && e.getDurationMinutes() <= request.getMaxDurationMinutes()))
                 .filter(e -> e.getMaxParticipants() >= request.getHeadCount())
                 .sorted((left, right) -> left.getId().compareTo(right.getId()))
                 .limit(MAX_RECOMMENDED_EXPERIENCES)
@@ -178,6 +200,8 @@ public class RecommendationService {
                 .recommendedExperiences(recommendations)
                 .fallback(true)
                 .message(FALLBACK_MESSAGE)
+                .appliedFilters(Map.of())
+                .connectionEvidence(Map.of())
                 .build();
     }
 

@@ -18,4 +18,13 @@ public class FastApiRecommendationResponse {
     private List<FastApiSourceResponse> sources;
     private Boolean fallback;
     private String message;
+    private Map<String, Object> appliedFilters;
+    private Map<String, List<Map<String, Object>>> connectionEvidence;
+
+    public FastApiRecommendationResponse(String answer, List<Long> recommendedExperienceIds,
+            Map<String, String> reasons, List<String> matchingKeywords,
+            List<FastApiSourceResponse> sources, Boolean fallback, String message) {
+        this(answer, recommendedExperienceIds, reasons, matchingKeywords, sources,
+                fallback, message, Map.of(), Map.of());
+    }
 }
